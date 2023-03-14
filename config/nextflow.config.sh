@@ -1,0 +1,28 @@
+//config file
+
+//directory containing reads, reference and short-read output or
+//in_dir = "/path/to/directory" option?
+
+//reads
+//reads = "/path/to/reads/*.fastq"
+reads = 
+
+//reference
+//ref = "/path/to/ref"
+ref = 
+ref_fasta = "$ref/fasta/fasta"
+ref_gene = "$ref/gene/gene.gtf"
+
+//short-read output file
+//shr_out = "/path/to/short-read.outputfile"
+shr_out = 
+
+//out_dir
+//out_dir = "/path/to/output_directory/"
+out_dir = 
+
+
+//params
+//adjustable parameters
+param.fuscia_mapqual = 30
+param.flexi_search_length = 20
