@@ -11,8 +11,6 @@ import sys
 
 def get_gene_dict(shr_output):
     r = pd.read_csv(shr_output)
-    #needed for flexiplex (make a parameter)
-    r = r[r.classification == 'HighConfidence']
     f = r["fusion genes"].str.split(':', expand = True).to_numpy().flatten()
     
     gene_dict = {}
@@ -47,6 +45,8 @@ def get_gene_range(gene_gtf, gene_dict):
 def gene_range(shr_output, gene_dict):
     
     r = pd.read_csv(shr_output)
+    #needed for flexiplex (make a parameter)
+    r = r[r.classification == 'HighConfidence']
     df = r[['fusion genes', 'chrom1', 'base1', 'strand1', 'chrom2', 'base2','strand2']].copy()
     df['fusion genes'] = df['fusion genes'].str.replace(':','--')
     df.insert(2, "gene1", None)
