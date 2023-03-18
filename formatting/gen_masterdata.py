@@ -11,6 +11,7 @@ import sys
 
 def get_gene_dict(shr_output):
     r = pd.read_csv(shr_output)
+    #needed for flexiplex (make a parameter)
     r = r[r.classification == 'HighConfidence']
     f = r["fusion genes"].str.split(':', expand = True).to_numpy().flatten()
     
