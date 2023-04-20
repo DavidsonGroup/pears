@@ -3,12 +3,6 @@ Created on Mon Mar 20 20:11:22 2023
 
 @author: wu.s
 """
-
-#finding fuscia gene range
-#input: gene_file(*/reference/gene/genes.gtf (refdata)), gene_list (jaffa output file)
-#if region is bigger/smaller than breakpoint site = region
-#output: {gene: [start, end]}
-#issue: if name does not match (ENSG code might match) it is ignored. 
 import pandas as pd
 import pybedtools
 import os

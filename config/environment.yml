@@ -9,3 +9,4 @@ dependencies:
   - os
   - sys
   - biopython
+  - cellranger
