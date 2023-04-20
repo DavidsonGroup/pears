@@ -1,0 +1,6 @@
+[submodule "flexiplex"]
+	path = flexiplex
+	url = git@github.com:DavidsonGroup/flexiplex.git
+[submodule "fuscia"]
+	path = fuscia
+	url = git@github.com:ding-lab/fuscia.git
