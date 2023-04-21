@@ -11,6 +11,6 @@ include { RUN_CELLRANGER } from './modules/run_cellranger.nf'
 
 workflow {
 
-	//GEN_MASTERDATA()
-	RUN_CELLRANGER()
+	GEN_MASTERDATA()
+	//RUN_CELLRANGER()
 }
