@@ -24,8 +24,8 @@ process runFlexiplex {
         flexiplex = '$projectDir/submodules/flexiplex/flexiplex'
 
         os.system(f'paste -d "&" $params.reads/*.fastq | {flexiplex} -n {fusion_name} -l {left} -k {right} -r "" -f 1 -e 1 -u 0 -i false -s false > $params.out_dir/flexiplex_output/{fusion_name}_reads.fastq')
-        os.system(f'{flexiplex} -l "" -r "&" -b $params.cellbarcode_len -u {umi_len} -e 0 -f 0 -n {fusion_name} $params.out_dir/flexiplex_output/{fusion_name}_reads.fastq')
-        os.system(f'{flexiplex} -l "" -k {fusion_name}_barcodes_counts.txt -b {cellbarcode_len} -u {umi_len} -r "&" -e 0 -f 0 -n barcodes_{fusion_name} $params.out_dir/flexiplex_output/{fusion_name}_reads.fastq')
+        os.system(f'{flexiplex} -l "" -r "&" -b $params.cellbarcode_len -u $params.umi_len -e 0 -f 0 -n {fusion_name} $params.out_dir/flexiplex_output/{fusion_name}_reads.fastq')
+        os.system(f'{flexiplex} -l "" -k {fusion_name}_barcodes_counts.txt -b $params.cellbarcode_len -u $params.umi_len -r "&" -e 0 -f 0 -n barcodes_{fusion_name} $params.out_dir/flexiplex_output/{fusion_name}_reads.fastq')
     """
 
 }
