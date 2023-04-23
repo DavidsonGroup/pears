@@ -1,7 +1,7 @@
 //setting up scrips and software
 include { GEN_MASTERDATA } from './modules/gen_masterdata.nf'
 include { RUN_CELLRANGER } from './modules/run_cellranger.nf'
-//include { FUSCIA_WORKFLOW } from '/modules/fuscia_workflow'
+include { runFuscia } from './modules/fuscia.nf'
 //include { FLEXIPLEX_WORKFLOW } from '/modules/flexiplex_workflow'
 
 
@@ -12,5 +12,6 @@ include { RUN_CELLRANGER } from './modules/run_cellranger.nf'
 workflow {
 
 	//GEN_MASTERDATA()
-	RUN_CELLRANGER()
+	//RUN_CELLRANGER()
+	runFuscia()
 }
