@@ -1,4 +1,4 @@
 .nextflow*
 .DS_Store
-./submodules/fuscia/
-./submodules/flexiplex/
+/submodules/fuscia/
+/submodules/flexiplex/
