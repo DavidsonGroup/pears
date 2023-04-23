@@ -18,4 +18,6 @@ process runFuscia {
         os.system(command)
     """
 
+    maxForks10
+
 }
