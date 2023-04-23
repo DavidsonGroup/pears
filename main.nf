@@ -13,5 +13,5 @@ workflow {
 
 	//GEN_MASTERDATA()
 	//RUN_CELLRANGER()
-	runFuscia()
+	//runFuscia()
 }
