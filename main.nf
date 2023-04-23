@@ -2,7 +2,7 @@
 include { GEN_MASTERDATA } from './modules/gen_masterdata.nf'
 include { RUN_CELLRANGER } from './modules/run_cellranger.nf'
 include { runFuscia } from './modules/fuscia.nf'
-//include { FLEXIPLEX_WORKFLOW } from '/modules/flexiplex_workflow'
+include { runFlexiplex } from './modules/flexiplex.nf'
 
 
 //create channels
@@ -14,4 +14,5 @@ workflow {
 	//GEN_MASTERDATA()
 	//RUN_CELLRANGER()
 	//runFuscia()
+	runFlexiplex()
 }
