@@ -2,7 +2,7 @@
 layout: default
 ---
 
-## What is pears?
+# What is pears?
 ### Input
 #### Adjustable Parameters
 ### Fuscia
@@ -11,4 +11,4 @@ layout: default
 [Link to Flexiplex](https://github.com/DavidsonGroup/flexiplex)
 ### Output
 
-## Installing pears
+# Installing pears
