@@ -9,7 +9,7 @@ process RUN_CELLRANGER {
 	params.out_dir
 
 	output:
-  	path '$params.out_dir/cellranger_output', emit: cellranger_out
+ 	path '$params.out_dir/cellranger_output/'
 	
 	script:
 	"""
