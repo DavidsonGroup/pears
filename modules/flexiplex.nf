@@ -7,7 +7,6 @@ process Flexiplex {
     params.flexi_searchlen
     params.cellbarcode_len
     params.umi_len
-    val x from 
 
     script:
     """
@@ -19,8 +18,7 @@ process Flexiplex {
     os.makedirs(f'{cur_dir}/flexiplex_output', exist_ok = True)
     r = pd.read_csv(masterdata)
     
-    
-        row = r.iloc[x]
+    for index, row in df.iterrows():
         fusion_name = f'{row["fusion gene"]}_{x}'
         left = row['sequence1']
         right = row['sequence2']

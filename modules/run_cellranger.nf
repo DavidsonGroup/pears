@@ -5,9 +5,6 @@ process RUN_CELLRANGER {
 	params.reference
 	params.reads
 	params.out_dir
-
-	output:
- 	path '$params.out_dir/cellranger_output/'
 	
 	script:
 	"""
