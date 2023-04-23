@@ -111,9 +111,9 @@ gene = reference + '/genes/genes.gtf'
 fasta = reference + '/fasta/genome.fa'
 gene_dict = get_gene_dict(shr_output)
 add_gene_range = get_gene_range(gene, gene_dict)
-with open(f'{out_dir}/generange.txt', 'w') as f:
-    for key in add_gene_range.keys():
-        f.write("%s, %s\n"%(key, add_gene_range[key]))
+#with open(f'{out_dir}/generange.txt', 'w') as f:
+    #for key in add_gene_range.keys():
+        #f.write("%s, %s\n"%(key, add_gene_range[key]))
 fuscia_gene_range = gene_range(shr_output, add_gene_range, up, down)
 flexi_gene_range = get_flexi_sequences(fuscia_gene_range, int(flexi_searchlen), fasta)
 flexi_gene_range.to_csv(f'{out_dir}/masterdata.csv', index = False)
