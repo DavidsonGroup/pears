@@ -1,0 +1,119 @@
+"""
+Created on Mon Mar 20 20:11:22 2023
+
+@author: wu.s
+"""
+
+#finding fuscia gene range
+#input: gene_file(*/reference/gene/genes.gtf (refdata)), gene_list (jaffa output file)
+#if region is bigger/smaller than breakpoint site = region
+#output: {gene: [start, end]}
+#issue: if name does not match (ENSG code might match) it is ignored. 
+import pandas as pd
+import pybedtools
+import os
+from Bio.Seq import Seq
+import sys
+
+def get_gene_dict(shr_output):
+    r = pd.read_csv(shr_output)
+    #r = r[r.classification == 'HighConfidence']
+    f = r["fusion genes"].str.split('--', expand = True).to_numpy().flatten()
+
+    gene_dict = {}
+
+    for i in f:
+        if i not in gene_dict:
+            gene_dict[i] = []
+
+    return gene_dict
+
+
+def get_gene_range(gene_gtf, gene_dict):
+    df = pd.read_csv(gene_gtf, delimiter="\t", usecols=[0, 2, 3, 4, 8] , skiprows=(5), header=None, names=['chrom', 'feature', 'start', 'end', 'attributes'])
+    
+
+    df['attributes'] = df['attributes'].str.rsplit('gene_name "').str.get(1)
+    df['attributes'] = df['attributes'].str.rsplit('";').str.get(0)
+
+    for index, row in df.iterrows():
+        if row['feature'] == 'gene':
+            if row['attributes'] in gene_dict and gene_dict[row['attributes']] == []:
+                gene_dict[row['attributes']]= [row['chrom'], row['start'], row['end']]
+            elif row['attributes'] in gene_dict and gene_dict[row['attributes']] != []:
+                if row['start'] < gene_dict[row['attributes']][1]:
+                    gene_dict[row['attributes']][1] = row['start']
+                if row['end'] > gene_dict[row['attributes']][2]:
+                    gene_dict[row['attributes']][1] = row['end']
+    #gene_dict = dict( [(k,v) for (k,v) in gene_dict.items() if v] )
+
+    return gene_dict
+
+def gene_range(shr_output, gene_dict, up, down):
+
+    r = pd.read_csv(shr_output)
+    df = r[['fusion genes', 'chrom1', 'base1', 'strand1', 'chrom2', 'base2','strand2', 'classification']].copy()
+    df['fusion genes'] = df['fusion genes'].str.replace(':','--')
+    df = df.assign(gene1=None, sequence1=None, gene2=None, sequence2=None, confidence=None)
+    df = df[['fusion genes', 'chrom1', 'gene1', 'base1', 'sequence1', 'strand1', 'chrom2', 'gene2', 'base2', 'sequence2', 'strand2', 'classification']]
+
+    gene1 = []
+    gene2 = []
+    for index, row in df.iterrows():
+        genes = row['fusion genes'].split("--")
+        if gene_dict[genes[0]] != []:
+            gene1.append(gene_dict[genes[0]][1])
+        else:
+            gene1.append(row['base1']-int(down))
+        if gene_dict[genes[1]] != []:
+            gene2.append(gene_dict[genes[1]][2])
+            
+        else:
+            gene2.append(row['base2']+int(up))
+
+    df['gene1'] = gene1
+    df['gene2'] = gene2
+    #df.set_index('fusion genes', inplace =True)
+    
+    return df
+
+def get_sequence(gene, fasta):
+    y = f'{gene[0]} {gene[1]} {gene[2]}'
+    x = pybedtools.BedTool(y, from_string=True)
+    a = x.sequence(fi=fasta)
+    return open(a.seqfn).read().splitlines()[1]
+
+def get_flexi_sequences(df, len_barcode, fasta):
+    gene1_seq = []
+    gene2_seq = []
+    for index, row in df.iterrows():
+        gene1seq = (get_sequence([row['chrom1'], row['base1'] - len_barcode, row['base1']], fasta))
+        gene2seq = (get_sequence([row['chrom2'], row['base2'], row['base2'] + len_barcode], fasta))
+        if row['strand1'] == '-':
+            gene1seq = Seq(gene1seq).reverse_complement()
+        elif row['strand2'] == '-':
+            gene2seq = Seq(gene2seq).reverse_complement()
+        gene1_seq.append(gene1seq)
+        gene2_seq.append(gene2seq)
+
+    df['sequence1'] = gene1_seq
+    df['sequence2'] = gene2_seq
+
+    return df
+
+shr_output = sys.argv[1]
+reference = sys.argv[2]
+flexi_searchlen = sys.argv[3]
+out_dir = sys.argv[4]
+up = sys.argv[5]
+down = sys.argv[6]
+gene = reference + '/genes/genes.gtf'
+fasta = reference + '/fasta/genome.fa'
+gene_dict = get_gene_dict(shr_output)
+add_gene_range = get_gene_range(gene, gene_dict)
+with open(f'{out_dir}/generange.txt', 'w') as f:
+    for key in add_gene_range.keys():
+        f.write("%s, %s\n"%(key, add_gene_range[key]))
+fuscia_gene_range = gene_range(shr_output, add_gene_range, up, down)
+flexi_gene_range = get_flexi_sequences(fuscia_gene_range, int(flexi_searchlen), fasta)
+flexi_gene_range.to_csv(f'{out_dir}/masterdata.csv', index = False)
