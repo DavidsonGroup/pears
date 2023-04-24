@@ -1,7 +1,7 @@
 //setting up scrips and software
 include { GEN_MASTERDATA } from './modules/gen_masterdata.nf'
 include { RUN_CELLRANGER } from './modules/run_cellranger.nf'
-include { runFuscia } from './modules/nf_fuscia.nf'
+include { runFuscia } from './modules/fuscia.nf'
 //include { runFlexiplex } from './modules/flexiplex.nf'
 
 
