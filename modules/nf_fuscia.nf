@@ -5,9 +5,9 @@ process runFuscia {
     params.out_dir
 
     masterdata_ch.view { row, index -> 
-	gene1 = "${row["chrom1"]}:${Math.min(row."base1".toInteger(), row."gene1".toInteger())}-${Math.max(row."base1".toInteger(), row."gene1".toInteger())}"
-    	gene2 = "${row."chrom2"}:${Math.min(row."base2".toInteger(), row."gene2".toInteger())}-${Math.max(row."base2".toInteger(), row."gene2".toInteger())}"
-	fusion_name = "${row."fusion genes"}_$index"
+	gene1 = "${row["chrom1"]}:${Math.min(row["base1"].toInteger(), row["gene1"].toInteger())}-${Math.max(row["base1"].toInteger(), row["gene1"].toInteger())}"
+    	gene2 = "${row["chrom2"]}:${Math.min(row["base2"].toInteger(), row["gene2"].toInteger())}-${Math.max(row["base2"].toInteger(), row["gene2"].toInteger())}"
+	fusion_name = "${row["fusion genes"]}_$index"
 
 	}
 
