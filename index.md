@@ -43,7 +43,7 @@ params {
  *              - out_dir = "/path/to/output_directory/"
 */      
         in_dir =
- *              - reads = "/path/to/reads/"
+ /*             - reads = "/path/to/reads/"
  *              - reference = "/path/to/reference/"
  *                      - if you have pre-generated .fasta or gene.gtf files, ref_fasta and ref_gene
  *                        can be changed.
