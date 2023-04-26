@@ -1,6 +1,4 @@
 process formatFuscia{
-	when:
-	file("$params.out_dir/fuscia_out").isDirectory()	
 
 	script:
 	"""
@@ -28,9 +26,6 @@ process formatFuscia{
 }
 
 process formatFlexiplex{
-	when:
-	file("$params.out_dir/flexiplex_out").isDirectory()
-
 	script:
 	"""
 	#!/usr/bin/env python3
