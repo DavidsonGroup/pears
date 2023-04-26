@@ -10,8 +10,8 @@ process formatFuscia{
 	def add_fusion_name(file):
 		r = pd.read_table(file)
 		if r.empty == False:
-		r['fusion'] =  os.path.basename(file).split("_")[0]
-		return r
+			r['fusion'] =  os.path.basename(file).split("_")[0]
+			return r
 
 	in_dir = $params.out_dir/fuscia_out/
 	df = pd.DataFrame(columns=['cell_barcode', 'molecular_barcode', 'chrom', 'start', 'end','fusion'])
@@ -36,15 +36,15 @@ process formatFlexiplex{
 	def add_fusion_name(file):
 		r = pd.read_table(file)
 		if r.empty == False:
-		df_temp = pd.DataFrame().assign(cell_barcode = r['Read'], molecular_barcode = r['BarcodeEditDist'])
-		df_temp['fusion'] =  os.path.basename(file).split("_")[1]
-		return df_temp
+			df_temp = pd.DataFrame().assign(cell_barcode = r['Read'], molecular_barcode = r['BarcodeEditDist'])
+			df_temp['fusion'] =  os.path.basename(file).split("_")[1]
+			return df_temp
 
 	in_dir = $params.out_dir/flexiplex_out/
 	df = pd.DataFrame(columns = ['cell_barcode', 'molecular_barcode', 'fusion'])
 	for file in os.listdir(in_dir):
 		if os.path.basename(file)[0:8] == 'barcodes':
-		r = add_fusion_name(f'{in_dir}/{file}')
+			r = add_fusion_name(f'{in_dir}/{file}')
 	df = pd.concat([df, r], axis = 0, ignore_index = True)
 	df.to_csv(f'$params.out_dir/master_flexiplex.csv', index=False)	
 
