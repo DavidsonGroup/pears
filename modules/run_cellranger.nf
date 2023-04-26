@@ -6,9 +6,6 @@ process RUN_CELLRANGER {
 	params.reads
 	params.out_dir
 	
-	output:
-	val true
-	
 	script:
 	"""
 	cd $params.out_dir
