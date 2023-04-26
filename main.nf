@@ -9,14 +9,11 @@ include { FORMATTING } from './modules/formatting.nf'
 //ch_shr_output = params.shr_output ? file(params.shr_output) : file("${params.in_dir}/shr_output.csv")
 //ch_reference = params.reference ? params.reference : "${params.in_dir}/reference"
 
-//masterdata_ch = Channel.fromPath("${params.out_dir}/masterdata.csv").splitCsv()
-//masterdata_ch.each { row -> println "$row" }
-
 workflow {
 
-	//GEN_MASTERDATA()
-	//RUN_CELLRANGER()
-/* 
+	GEN_MASTERDATA()
+	RUN_CELLRANGER()
+
 	masterdata_ch = Channel.fromPath("$params.out_dir/masterdata.csv")
 	mapped_ch = masterdata_ch \
 	        | splitCsv(header:true) \
@@ -24,8 +21,7 @@ workflow {
 		
 	mapped_ch | runFuscia
 	mapped_ch | runFlexiplex
-	*/
 
 	FORMATTING()
-	
+
 }
