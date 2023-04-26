@@ -17,7 +17,7 @@ process GEN_MASTERDATA {
 	script:
 	"""
 
-	python $project_dir/scripts/gen_masterdata.py $params.shr_output $params.reference $params.flexi_searchlen $params.out_dir $params.fuscia_up $params.fuscia_down
+	python $project_dir/submodules/gen_masterdata.py $params.shr_output $params.reference $params.flexi_searchlen $params.out_dir $params.fuscia_up $params.fuscia_down
 	
 	"""
 

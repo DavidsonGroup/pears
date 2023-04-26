@@ -6,7 +6,7 @@ process runFlexiplex {
 	"""
 	#!/usr/bin/env python3
 	import os
-	os.makedirs('$params.out_dir/flexiplex_output', exist_ok = True)
+	os.makedirs('$params.out_dir/flexiplex_out', exist_ok = True)
 	fusion_name = f'${fusion_genes}_${task.index}'
 	flexiplex = f'$projectDir/submodules/flexiplex/flexiplex'
 	cmd = f'paste -d "&" $params.reads*.fastq | {flexiplex} -n {fusion_name} -l $sequence1 -k $sequence2 -r "" -f 1 -e 1 -u 0 -i false -s false > $params.out_dir/flexiplex_output/{fusion_name}_reads.fastq ; {flexiplex} -l "" -r "&" -b $params.cellbarcode_len -u $params.umi_len -e 0 -f 0 -n {fusion_name} $params.out_dir/{fusion_name}_reads.fastq ; {flexiplex} -l "" -k {fusion_name}_barcodes_counts.txt -b $params.cellbarcode_len -u $params.umi_len -r "&" -e 0 -f 0 -n barcodes_{fusion_name} $params.out_dir/{fusion_name}_reads.fastq'
