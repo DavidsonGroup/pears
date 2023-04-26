@@ -2,6 +2,8 @@ process formatFuscia{
 
 	script:
 	"""
+	when:
+        file("$params.out_dir/fuscia_out").isDirectory()
 	#!/usr/bin/env python3
 
 	import pandas as pd
@@ -26,6 +28,8 @@ process formatFuscia{
 }
 
 process formatFlexiplex{
+	when:
+	file("$params.out_dir/flexiplex_out").isDirectory()
 	script:
 	"""
 	#!/usr/bin/env python3
