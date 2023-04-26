@@ -1,7 +1,7 @@
 project_dir = projectDir
 
 process GEN_MASTERDATA {
-	conda './env/pears_env.yml'
+	conda "${baseDir}/env/pears_env.yml"
 	
 	input:
 	params.shr_output
