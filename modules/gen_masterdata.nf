@@ -9,7 +9,8 @@ process GEN_MASTERDATA {
 	params.fuscia_up
 	params.fuscia_down
 	
-	
+	output:
+	path $params.out_dir'/masterdata.csv'
 	
 	script:
 	"""
