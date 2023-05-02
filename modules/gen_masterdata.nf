@@ -1,6 +1,6 @@
 process GEN_MASTERDATA {
 	conda "${projectDir}/env/pears_env.yml"
-	
+
 	input:
 	params.shr_output
 	params.reference
@@ -8,10 +8,10 @@ process GEN_MASTERDATA {
 	params.out_dir
 	params.fuscia_up
 	params.fuscia_down
-	
+
 	output:
-	path $params.out_dir'/masterdata.csv'
-	
+	file "masterdata.csv"	
+
 	script:
 	"""
 
