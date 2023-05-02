@@ -2,8 +2,8 @@
 include { GEN_MASTERDATA } from './modules/gen_masterdata.nf'
 include { RUN_CELLRANGER } from './modules/run_cellranger.nf'
 include { FusciaFlexiplex } from './submodules/FuFl.nf'
-//include { runFuscia } from './modules/fuscia.nf'
-//include { runFlexiplex } from './modules/flexiplex.nf'
+include { runFuscia } from './modules/fuscia.nf'
+include { runFlexiplex } from './modules/flexiplex.nf'
 include { FORMATTING } from './modules/formatting.nf'
 
 //create channels
@@ -12,18 +12,17 @@ include { FORMATTING } from './modules/formatting.nf'
 
 workflow {
 	
-	GEN_MASTERDATA()
-	RUN_CELLRANGER()
+	//GEN_MASTERDATA()
+	//RUN_CELLRANGER()
 	
-	process runModules {
-		when:
-		file("$params.out_dir/masterdata.csv").exists()
+	masterdata_ch = Channel.fromPath("${params.out_dir}/masterdata.csv")
+        mapped_ch = masterdata_ch \
+                | splitCsv(header:true) \
+                | map { row -> tuple(row.fusion_genes, row.'chrom1', row.gene1, row.base1, row.sequence1, row.chrom2, row.gene2, row.base2, row.sequence2)}
 
-		script:
-		"""
-		FusciaFlexiplex()
-		FORMATTING()
-		"""
+        mapped_ch | runFuscia
+        //mapped_ch | runFlexiplex
+	
+	//FORMATTING()
 
-	}
 }

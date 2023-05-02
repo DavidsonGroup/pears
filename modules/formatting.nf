@@ -1,9 +1,9 @@
 process formatFuscia{
-
-	script:
-	"""
 	when:
         file("$params.out_dir/fuscia_out").isDirectory()
+	
+	script:
+	"""
 	#!/usr/bin/env python3
 
 	import pandas as pd
