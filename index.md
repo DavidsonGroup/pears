@@ -3,6 +3,14 @@ layout: default
 ---
 
 # What is pears?
+
+
+# Installing pears
+1. `git clone https://github.com/DavidsonGroup/pears.git`
+2. make sure you have nextflow installed. See [docs](https://www.nextflow.io/docs/latest/getstarted.html).
+3. `nextflow run pears` from outside the directory or `nextflow main.nf` from inside the directory
+
+
 ### Input
 Pears requires:
  - single-cell paired-end reads
@@ -43,10 +51,7 @@ The adjustable parameters for pears includes:
 [Link to Flexiplex](https://github.com/DavidsonGroup/flexiplex)
 ### Output
 
-# Installing pears
-1. `git clone https://github.com/DavidsonGroup/pears.git`
-2. make sure you have nextflow installed. See [docs](https://www.nextflow.io/docs/latest/getstarted.html).
-3. `nextflow run pears` from outside the directory or `nextflow main.nf` from inside the directory
+
 
 # Modules and Requirements
 Pears includes three modules: cellranger, fuscia and flexiplex. You may choose to use any combination of the three, however some may have dependencies.
