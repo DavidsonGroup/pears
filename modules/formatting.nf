@@ -1,6 +1,6 @@
 process formatFuscia{
-	when:
-        file("$params.out_dir/fuscia_out").isDirectory()
+	input:
+	val "fuscia complete"
 	
 	script:
 	"""
@@ -57,8 +57,3 @@ process formatFlexiplex{
 }
 
 
-workflow FORMATTING{
-	formatFuscia()
-	formatFlexiplex()
-
-}
