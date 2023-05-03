@@ -31,7 +31,7 @@ The adjustable parameters for pears includes:
  - fuscia_up/fuscia_down
  - flexi_searchlen 
 
-| parameters     | requirements      |
+| parameters     | requirements    |
 |:-------------|:------------------|
 | fuscia_mapqual | the `map_qual` parameter used by fuscia, this will determine the minimum acceptable MAPQ quality of reads fuscia will look for |
 | fuscia_up/fuscia_down | if there is no corresponding gene annotation in the reference gene.gtf file, you can specify a range (in bp) upstream/downstream of the fusion breakpoint |
