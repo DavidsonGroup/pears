@@ -86,15 +86,21 @@ def get_sequence(gene, fasta):
 def get_flexi_sequences(df, len_barcode, fasta):
     gene1_seq = []
     gene2_seq = []
+    chromosomes = [f'chr{i}' for i in range(1, 24)] + ['chrX', 'chrY']
     for index, row in df.iterrows():
-        gene1seq = (get_sequence([row['chrom1'], row['base1'] - len_barcode, row['base1']], fasta))
-        gene2seq = (get_sequence([row['chrom2'], row['base2'], row['base2'] + len_barcode], fasta))
-        if row['strand1'] == '-':
-            gene1seq = Seq(gene1seq).reverse_complement()
-        elif row['strand2'] == '-':
-            gene2seq = Seq(gene2seq).reverse_complement()
+        if row['chrom1'] in chromosomes and row['chrom2'] in chromosomes:
+            gene1seq = (get_sequence([row['chrom1'], row['base1'] - len_barcode, row['base1']], fasta))
+            gene2seq = (get_sequence([row['chrom2'], row['base2'], row['base2'] + len_barcode], fasta))
+            if row['strand1'] == '-':
+                gene1seq = Seq(gene1seq).reverse_complement()
+            elif row['strand2'] == '-':
+                gene2seq = Seq(gene2seq).reverse_complement()
+        else:
+            gene1seq = None
+            gene2seq = None
         gene1_seq.append(gene1seq)
-        gene2_seq.append(gene2seq)
+        gene2_seq.append(gene2seq)	
+
 
     df['sequence1'] = gene1_seq
     df['sequence2'] = gene2_seq
