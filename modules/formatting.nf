@@ -28,8 +28,9 @@ process formatFuscia{
 }
 
 process formatFlexiplex{
-	when:
-	file("$params.out_dir/flexiplex_out").isDirectory()
+	input:
+	val "flexiplex done"	
+
 	script:
 	"""
 	#!/usr/bin/env python3

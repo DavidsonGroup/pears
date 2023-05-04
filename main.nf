@@ -11,15 +11,15 @@ include { formatFlexiplex } from './modules/formatting.nf'
 //ch_reference = params.reference ? params.reference : "${params.in_dir}/reference"
 
 workflow {
-	//GEN_MASTERDATA()
-	//RUN_CELLRANGER()
+	GEN_MASTERDATA()
+	RUN_CELLRANGER()
 	
-	masterdata_ch = Channel.fromPath("/stornext/Bioinf/data/lab_davidson/wu.s/nf_pears_test/2-5/masterdata.csv")
+	masterdata_ch = GEN_MASTERDATA.out
         mapped_ch = masterdata_ch \
                 | splitCsv(header:true) \
                 | map { row -> tuple(row.fusion_genes, row.'chrom1', row.gene1, row.base1, row.sequence1, row.chrom2, row.gene2, row.base2, row.sequence2)}
 
-	mapped_ch | runFuscia
+	runFuscia(mapped_ch, RUN_CELLRANGER.out)
        	mapped_ch | runFlexiplex
 	
 	formatFuscia(runFuscia.out)
