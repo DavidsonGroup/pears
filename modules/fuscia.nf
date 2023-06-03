@@ -12,11 +12,11 @@ process runFuscia {
 	"""
 	#!/usr/bin/env python3
 	import os
-	os.makedirs($params.out_dir/fuscia_out, exist_ok = True)
+	os.makedirs('$params.out_dir/fuscia_out', exist_ok = True)
 	gr1 = f'$chrom1:{min($gene1, $base1)}-{max($gene1, $base1)}'
 	gr2 = f'$chrom2:{min($gene2, $base2)}-{max($gene2, $base2)}'
 	fusion_name = f'${fusion_genes}_${task.index}'
-	command = f'python $projectDir/submodules/fuscia/discover_chimeric_transcripts.py $params.out_dir/cellranger_output/outs/*.bam {gr1} {gr2} ./{fusion_name} $params.fuscia_mapqual'
+	command = f'python $projectDir/submodules/fuscia/discover_chimeric_transcripts.py $params.out_dir/cellranger_output/outs/*.bam {gr1} {gr2} . {fusion_name} $params.fuscia_mapqual'
 	os.system(command)
 	"""
 }
