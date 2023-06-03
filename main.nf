@@ -15,7 +15,7 @@ workflow {
 	if(params.align){RUN_CELLRANGER()}
 	
 	if(params.masterdata){masterdata_ch = GEN_MASTERDATA.out}
-	else{masterdata_ch = Channel.fromPath(params.out_dir + '/masterdata.csv')}
+	else{ masterdata_ch = Channel.fromPath(params.out_dir + '/masterdata.csv')}
         mapped_ch = masterdata_ch \
                 | splitCsv(header:true) \
                 | map { row -> tuple(row.fusion_genes, row.'chrom1', row.gene1, row.base1, row.sequence1, row.chrom2, row.gene2, row.base2, row.sequence2)}
