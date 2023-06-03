@@ -1,8 +1,9 @@
 process runFlexiplex {
 	input:
 	tuple val (fusion_genes), val (chrom1), val (gene1), val (base1), val (sequence1), val (chrom2), val (gene2), val (base2), val (sequence2)	 
+	
 	output: 
-	file "barcodes_{fusion_name}" into $params.out_dir/flexiplex_out
+	file "*" into flexiplex_out
 
 	script:
 	"""

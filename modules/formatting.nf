@@ -29,7 +29,7 @@ process formatFuscia{
 
 process formatFlexiplex{
 	input:
-	file('*') from $params.out_dir/flexiplex_out.collect()	
+	file('*') from flexiplex_out.collect()	
 
 	script:
 	"""
