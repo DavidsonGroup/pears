@@ -12,14 +12,15 @@ include { formatFlexiplex } from './modules/formatting.nf'
 
 workflow {
 	GEN_MASTERDATA()
-	RUN_CELLRANGER()
+	if(params.align){RUN_CELLRANGER()}
 	
 	masterdata_ch = GEN_MASTERDATA.out
         mapped_ch = masterdata_ch \
                 | splitCsv(header:true) \
                 | map { row -> tuple(row.fusion_genes, row.'chrom1', row.gene1, row.base1, row.sequence1, row.chrom2, row.gene2, row.base2, row.sequence2)}
 
-	Fuscia_output_ch = runFuscia(mapped_ch, RUN_CELLRANGER.out).collect()
+	if(params.align){Fuscia_output_ch = runFuscia(mapped_ch, RUN_CELLRANGER.out).collect()}
+	else{ Fuscia_output_ch = runFuscia(mapped_ch, 'cellranger done').collect() } 
        	Flexiplex_ouput_ch = runFlexiplex(mapped_ch).collect()
 	
 	formatFuscia(Fuscia_output_ch)
