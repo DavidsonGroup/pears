@@ -4,7 +4,7 @@ process runFuscia {
 	val "cellranger done"	 	
 
 	output:
-	val "fuscia complete"	
+	path "*"	
 
 	script:
 	"""

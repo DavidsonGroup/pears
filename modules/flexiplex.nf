@@ -3,7 +3,7 @@ process runFlexiplex {
 	tuple val (fusion_genes), val (chrom1), val (gene1), val (base1), val (sequence1), val (chrom2), val (gene2), val (base2), val (sequence2)	 
 	
 	output: 
-	file "*" into flexiplex_out
+	path "*"
 
 	script:
 	"""
