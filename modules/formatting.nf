@@ -29,7 +29,7 @@ process formatFuscia{
 
 process formatFlexiplex{
 	input:
-	val "flexiplex done"	
+	file('*') from $params.out_dir/flexiplex_out.collect()	
 
 	script:
 	"""
