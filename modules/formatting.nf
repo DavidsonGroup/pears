@@ -29,7 +29,7 @@ process formatFuscia{
 
 process formatFlexiplex{
 	input:
-	file('*') from flexiplex_out.collect()	
+	path('*')	
 
 	script:
 	"""
