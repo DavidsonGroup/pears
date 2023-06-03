@@ -56,6 +56,7 @@ def gene_range(shr_output, gene_dict, up, down):
     df['fusion genes'] = df['fusion genes'].str.replace(':','--')
     df = df.assign(gene1=None, sequence1=None, gene2=None, sequence2=None, confidence=None)
     df = df[['fusion genes', 'chrom1', 'gene1', 'base1', 'sequence1', 'strand1', 'chrom2', 'gene2', 'base2', 'sequence2', 'strand2', 'classification']]
+    df = df[~df['fusion genes'].str.contains('MT-')]
 
     gene1 = []
     gene2 = []
