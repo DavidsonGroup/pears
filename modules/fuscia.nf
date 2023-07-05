@@ -6,7 +6,7 @@ process runFuscia {
 	val "cellranger done"	 	
 
 	output:
-	path('*')
+	path('$params.out_dir/fuscia_out/*')
 
 	script:
 	"""
