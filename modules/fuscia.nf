@@ -1,12 +1,12 @@
 process runFuscia {
-	publishDir params.out_dir
+	publishDir params.out_dir/fuscia_out
 
 	input:
 	tuple val (fusion_genes), val (chrom1), val (gene1), val (base1), val (sequence1), val (chrom2), val (gene2), val (base2), val (sequence2)
 	val "cellranger done"	 	
 
 	output:
-	path('$params.out_dir/fuscia_out/*.tsv')
+	path('*')
 
 	script:
 	"""
