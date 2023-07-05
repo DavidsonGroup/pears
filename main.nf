@@ -22,9 +22,9 @@ workflow {
 
 	if(params.align){Fuscia_output_ch = runFuscia(mapped_ch, RUN_CELLRANGER.out).collect()}
 	else{ Fuscia_output_ch = runFuscia(mapped_ch, 'cellranger done').collect() } 
-       	Flexiplex_output_ch = runFlexiplex(mapped_ch).collect()
+        \\Flexiplex_output_ch = runFlexiplex(mapped_ch).collect()
 	
 	formatFuscia(Fuscia_output_ch)
-	formatFlexiplex(Flexiplex_output_ch)
+	\\formatFlexiplex(Flexiplex_output_ch)
 
 }
