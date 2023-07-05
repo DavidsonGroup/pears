@@ -8,7 +8,9 @@ layout: default
 # Installing pears
 1. `git clone https://github.com/DavidsonGroup/pears.git`
 2. make sure you have nextflow installed. See [docs](https://www.nextflow.io/docs/latest/getstarted.html).
-3. `nextflow run pears` from outside the directory or `nextflow main.nf` from inside the directory
+3. compile Flexiplex in `/pears/submodules/Flexiplex` type `make`. See [docs](https://github.com/DavidsonGroup/flexiplex)
+4. Specify your parameters in the nextflow.config file 
+5. run `nextflow run pears -c /path/to/nextflow.config` 
 
 
 ### Input
