@@ -58,10 +58,12 @@ Pears includes three modules: alignment, fuscia and flexiplex. You may choose to
 
 | module       | requirements      |
 |:-------------|:------------------|
-| STAR   | reads, reference  |
+| STAR   | reads (randomised*), reference  |
 | Arriba | reads, `.bam` and `.bam.bai` files | 
 | fuscia       | reads, list of known fusions (fusion names, chrX:start-end for both genes), `.bam` and `.bam.bai` files |
 | flexiplex    | reads, list of known fusions (fusion names, cell barcode and UMI length, sequence around the fusion breakpoint)  |
+
+If your reads are already sorted by coordinate, please randomise before alignmented see [issue](https://github.com/alexdobin/STAR/issues/348).
 
 Pears also contains additional scripts to help format and streamline between processes.
 
