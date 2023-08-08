@@ -13,16 +13,13 @@ process RUN_STAR {
 
 	script:
 	"""
-	cd $params.out_dir
-
-	module load $params.STAR
+	cd $projectDir/modules/STAR/source/
 
 	STAR \
-	--runThreadN 8 \
+	--runThreadN $params.cpus \
 	--genomeDir $projectDir/STAR/STAR_index_GRCh38_GENCODE38/ --genomeLoad NoSharedMemory \
 	--readFilesIn $params.read2 $params.read1 \
 	--outSAMtype BAM SortedByCoordinate --outSAMunmapped Within --outBAMcompression 0\
-	--outBAMsortingBinsN 200 \
 	--outFilterMultimapNmax 50 --peOverlapNbasesMin 10 --alignSplicedMateMapLminOverLmate 0.5 --alignSJstitchMismatchNmax 5 -1 5 5 \
 	--chimSegmentMin 10 --chimOutType WithinBAM HardClip --chimJunctionOverhangMin 10 --chimScoreDropMax 30 \
 	--chimScoreJunctionNonGTAG 0 --chimScoreSeparation 1 --chimSegmentReadGapMax 3 --chimMultimapNmax 50 \
