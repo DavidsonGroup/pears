@@ -9,4 +9,7 @@ process initialise_tools{
     else
         cd $projectDir/modules/arriba && make
 
+    if checkIfExists('')
+	cd $projectDir/modules/STAR/source && make
+
 }

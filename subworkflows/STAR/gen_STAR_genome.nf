@@ -1,5 +1,6 @@
 process gen_genome{
-    input:
+    publishDir "${projectDir}/modules/STAR/"
+
     script:
     """
     $projectDir/arriba/download_references.sh $params.genome_version
