@@ -1,5 +1,7 @@
 .nextflow*
 .DS_Store
-/submodules/fuscia/
-/submodules/flexiplex/
 /work
+/modules/arriba
+/modules/fuscia
+/modules/flexiplex
+/modules/STAR
