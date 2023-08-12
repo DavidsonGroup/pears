@@ -1,10 +1,10 @@
 //setting up scrips and software
-include { GEN_MASTERDATA } from './modules/gen_masterdata.nf'
-include { RUN_CELLRANGER } from './modules/run_cellranger.nf'
-include { runFuscia } from './modules/fuscia.nf'
-include { runFlexiplex } from './modules/flexiplex.nf'
-include { formatFuscia } from './modules/formatting.nf'
-include { formatFlexiplex } from './modules/formatting.nf'
+include { GEN_MASTERDATA } from './subworkflows/gen_masterdata.nf'
+include { RUN_CELLRANGER } from './subworkflows/run_cellranger.nf'
+include { runFuscia } from './subworkflows/fuscia.nf'
+include { runFlexiplex } from './subworkflows/flexiplex.nf'
+include { formatFuscia } from './subworkflows/formatting.nf'
+include { formatFlexiplex } from './subworkflows/formatting.nf'
 
 //create channels
 //ch_shr_output = params.shr_output ? file(params.shr_output) : file("${params.in_dir}/shr_output.csv")
