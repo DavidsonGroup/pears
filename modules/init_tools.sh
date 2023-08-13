@@ -6,3 +6,4 @@ cd ./STAR/source && make
 cd ../../
 git clone https://github.com/DavidsonGroup/flexiplex
 cd ./flexiplex && make
+cd ../barcodes/ && gunzip 3M-february-2018.txt.gz
