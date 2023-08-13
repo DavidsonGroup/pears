@@ -1,6 +1,6 @@
-#git clone https://github.com/suhrig/arriba
-#cd ./arriba && make
-#cd ..
+git clone https://github.com/suhrig/arriba
+cd ./arriba && make
+cd ..
 git clone https://github.com/alexdobin/STAR
 cd ./STAR/source && make
 cd ../../
