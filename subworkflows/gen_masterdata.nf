@@ -16,7 +16,7 @@ process GEN_MASTERDATA {
 	script:
 	"""
 
-	python $projectDir/submodules/gen_masterdata.py $params.known_list $params.reference $params.flexi_searchlen . $params.fuscia_up $params.fuscia_down
+	python $projectDir/subworkflows/gen_masterdata.py $params.known_list $params.reference $params.flexi_searchlen . $params.fuscia_up $params.fuscia_down
 	
 	"""
 
