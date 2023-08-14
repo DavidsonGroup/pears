@@ -5,5 +5,8 @@
 /modules/fuscia
 /modules/flexiplex
 /modules/STAR
+<<<<<<< HEAD
 ./.git/modules/STAR/objects/pack/pack-f67e728172242412d5bda22d0469194f2044564f.pack
 ./modules/STAR/.git/objects/pack/pack-f67e728172242412d5bda22d0469194f2044564f.pack
+=======
+>>>>>>> a4f53fdf61082f99d2cded4e28076871d04232ef
