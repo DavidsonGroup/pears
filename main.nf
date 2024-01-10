@@ -12,7 +12,7 @@ include { formatFlexiplex } from './subworkflows/formatting.nf'
 
 workflow {
 	if(params.masterdata){GEN_MASTERDATA()}
-	if(params.align){RUN_STARsolo}
+//	if(params.align){RUN_STARsolo}
 	
 	if(params.masterdata){masterdata_ch = GEN_MASTERDATA.out}
 	else{ masterdata_ch = Channel.fromPath(params.out_dir + '/masterdata.csv')}
@@ -20,8 +20,13 @@ workflow {
                 | splitCsv(header:true) \
                 | map { row -> tuple(row.fusion_genes, row.'chrom1', row.gene1, row.base1, row.sequence1, row.chrom2, row.gene2, row.base2, row.sequence2)}
 
-	if(params.align){Fuscia_output_ch = runFuscia(mapped_ch, RUN_STARsolo.out).collect()}
-	else{ Fuscia_output_ch = runFuscia(mapped_ch, 'aligner done').collect() } 
+	if(params.align){
+		STARsolo_result = RUN_STARsolo()
+		Fuscia_output_ch = runFuscia(mapped_ch, STARsolo_result.out).collect()
+	}
+	else{ 
+		Fuscia_output_ch = runFuscia(mapped_ch, 'aligner done').collect() 
+	} 
         Flexiplex_output_ch = runFlexiplex(mapped_ch).collect()
 	
 	formatFuscia(Fuscia_output_ch)

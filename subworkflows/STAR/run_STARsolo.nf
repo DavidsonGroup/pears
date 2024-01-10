@@ -16,7 +16,7 @@ process RUN_STARsolo {
 	"""
 	$projectDir/modules/STAR/STAR \
 	--runThreadN $params.cpus \
-	--genomeDir $projectDir/modules/STAR/STAR_index_GRCh38_GENCODE38/ --genomeLoad NoSharedMemory \
+	--genomeDir $params.genome_index --genomeLoad NoSharedMemory \
 	--readFilesIn $params.read2 $params.read1 \
 	--outSAMtype BAM SortedByCoordinate --outSAMunmapped Within --outBAMcompression 0\
 	--outFilterMultimapNmax 50 --peOverlapNbasesMin 10 --alignSplicedMateMapLminOverLmate 0.5 --alignSJstitchMismatchNmax 5 -1 5 5 \
@@ -36,7 +36,7 @@ process format_bam {
 
 	script:
 	"""
-	$projectDir/modules/samtools-1.18/samtools view -H Aligned.sortedByCoord.out.bam | sed -e 's/SN:\([0-9XY]\)/SN:chr\1/' -e 's/SN:MT/SN:chrM/' | samtools reheader - Aligned.sortedByCoord.out.bam > Aligned.sortedByCoord.out_chr.bam
+	$projectDir/modules/samtools-1.18/samtools view -H Aligned.sortedByCoord.out.bam | sed -E -e 's/SN:([0-9XY])/SN:chr\1/' -e 's/SN:MT/SN:chrM/' | samtools reheader - Aligned.sortedByCoord.out.bam > Aligned.sortedByCoord.out_chr.bam
 
 	$projectDir/modules/samtools-1.18/samtools index file Aligned.sortedByCoord.out_chr.bam
 	"""
