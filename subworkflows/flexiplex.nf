@@ -1,21 +1,30 @@
+//FIX -d option set in config file.
+
 process runFlexiplex {
-	publishDir "${params.out_dir}/flexiplex_out"	
+	publishDir "${params.out_dir}/flexiplex_out", mode: 'copy'
 
 	input:
 	tuple val (fusion_genes), val (chrom1), val (gene1), val (base1), val (sequence1), val (chrom2), val (gene2), val (base2), val (sequence2)	 
-	
+	path barcode_file
+
 	output: 
 	path "*"
 
 	script:
 	"""
-	#!/usr/bin/env python3
-	import os
-	os.makedirs('$params.out_dir/flexiplex_out', exist_ok = True)
-	fusion_name = f'${fusion_genes}_${task.index}'
-	flexiplex = f'$projectDir/modules/flexiplex/flexiplex'
-	cmd = f'paste -d "&" $params.reads/*.fastq | {flexiplex} -n {fusion_name} -l $sequence1 -k $sequence2 -r "" -f 1 -e 1 -u 0 -i false -s false > $params.out_dir/flexiplex_out/{fusion_name}_reads.fastq && cd $params.out_dir/flexiplex_out/ && {flexiplex} -l "" -r "&" -b $params.cellbarcode_len -u $params.umi_len -e 0 -f 0 -n {fusion_name} {fusion_name}_reads.fastq && {flexiplex} -l "" -k {fusion_name}_barcodes_counts.txt -b $params.cellbarcode_len -u $params.umi_len -r "&" -e 0 -f 0 -n barcodes_{fusion_name} $params.out_dir/flexiplex_out/{fusion_name}_reads.fastq'
-	os.system(cmd)
-	
-	"""
+	# Define the fusion name and flexiplex path
+    	fusion_name="${fusion_genes}_${task.index}"
+
+    	# Run flexiplex with the specified parameters
+    	paste <(gunzip -c ${params.read1}) <(gunzip -c ${params.read2}) | \
+	   sed "/^[@+]/! s/^/START/g" | sed "/^[@+]/! s/	//g" | \
+	   ${projectDir}/modules/flexiplex/flexiplex -p $task.cpus -n \${fusion_name} \
+	   -x ${sequence1}${sequence2} -d grep -f 1 > \${fusion_name}_reads.fastq  
+
+    	${projectDir}/modules/flexiplex/flexiplex -x START \
+	   ${params.flexiplex_demultiplex_options} \
+	   -k ${barcode_file} -n barcodes_\${fusion_name} \${fusion_name}_reads.fastq 
+	   
+    """
 }
+

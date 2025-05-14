@@ -1,11 +1,13 @@
+//		conda "${projectDir}/env/pears_env.yml"
+
+
 process GEN_MASTERDATA {
-	conda "${projectDir}/env/pears_env.yml"
-	publishDir params.out_dir	
+	publishDir params.out_dir, mode: 'copy'
 
 	input:
 	params.known_list
 	params.reference
-	params.flexi_searchlen
+	params.flexiplex_searchlen
 	params.out_dir
 	params.fuscia_up
 	params.fuscia_down
@@ -16,7 +18,11 @@ process GEN_MASTERDATA {
 	script:
 	"""
 
-	python $projectDir/subworkflows/gen_masterdata.py $params.known_list $params.reference $params.flexi_searchlen . $params.fuscia_up $params.fuscia_down
+	python $projectDir/subworkflows/gen_masterdata.py \
+	       				$params.known_list \
+	       				$params.ref_gene \
+					$params.ref_fasta \
+					$params.flexiplex_searchlen . $params.fuscia_up $params.fuscia_down
 	
 	"""
 

@@ -5,7 +5,7 @@ Created on Mon Mar 20 20:11:22 2023
 """
 
 #finding fuscia gene range
-#input: gene_file(*/reference/gene/genes.gtf (refdata)), gene_list (jaffa output file)
+#input: gene_file(*/reference/gene/genes.gtf (refdata)), fusion_list (e.g. jjaffa output file)
 #if region is bigger/smaller than breakpoint site = region
 #output: {gene: [start, end]}
 #issue: if name does not match (ENSG code might match) it is ignored. 
@@ -17,9 +17,8 @@ import sys
 
 def get_gene_dict(shr_output):
     r = pd.read_csv(shr_output)
-    #r = r[r.classification == 'HighConfidence']
     f = r["fusion genes"].str.split('--', expand = True).to_numpy().flatten()
-
+    
     gene_dict = {}
 
     for i in f:
@@ -52,10 +51,10 @@ def get_gene_range(gene_gtf, gene_dict):
 def gene_range(shr_output, gene_dict, up, down):
 
     r = pd.read_csv(shr_output)
-    df = r[['fusion genes', 'chrom1', 'base1', 'strand1', 'chrom2', 'base2','strand2', 'classification']].copy()
+    df = r[['fusion genes', 'chrom1', 'base1', 'strand1', 'chrom2', 'base2','strand2']].copy()
     df['fusion genes'] = df['fusion genes'].str.replace(':','--')
     df = df.assign(gene1=None, sequence1=None, gene2=None, sequence2=None, confidence=None)
-    df = df[['fusion genes', 'chrom1', 'gene1', 'base1', 'sequence1', 'strand1', 'chrom2', 'gene2', 'base2', 'sequence2', 'strand2', 'classification']]
+    df = df[['fusion genes', 'chrom1', 'gene1', 'base1', 'sequence1', 'strand1', 'chrom2', 'gene2', 'base2', 'sequence2', 'strand2']]
     df = df[~df['fusion genes'].str.contains('MT-')]
 
     gene1 = []
@@ -63,14 +62,25 @@ def gene_range(shr_output, gene_dict, up, down):
     for index, row in df.iterrows():
         genes = row['fusion genes'].split("--")
         if gene_dict[genes[0]] != []:
-            gene1.append(gene_dict[genes[0]][1])
+            if row['strand1'] == '+' :
+                gene1.append(gene_dict[genes[0]][1]) #start of gene 1
+            else:
+                gene1.append(gene_dict[genes[0]][2]) #end of gene 1
         else:
-            gene1.append(row['base1']-int(down))
+            if row['strand1'] == '+' :
+                gene1.append(row['base1']-int(down))
+            else:
+                gene1.append(row['base1']+int(up))
         if gene_dict[genes[1]] != []:
-            gene2.append(gene_dict[genes[1]][2])
-            
+            if row['strand1'] == '+' :
+                gene2.append(gene_dict[genes[1]][2]) #end of gene 2
+            else:
+                gene2.append(gene_dict[genes[1]][1]) #start of gene 2
         else:
-            gene2.append(row['base2']+int(up))
+            if row['strand1'] == '+' :
+                gene2.append(row['base2']+int(up))
+            else:
+                gene2.append(row['base2']-int(down))
 
     df['gene1'] = gene1
     df['gene2'] = gene2
@@ -90,11 +100,15 @@ def get_flexi_sequences(df, len_barcode, fasta):
     chromosomes = [f'chr{i}' for i in range(1, 24)] + ['chrX', 'chrY']
     for index, row in df.iterrows():
         if row['chrom1'] in chromosomes and row['chrom2'] in chromosomes:
-            gene1seq = (get_sequence([row['chrom1'], row['base1'] - len_barcode, row['base1']], fasta))
-            gene2seq = (get_sequence([row['chrom2'], row['base2'], row['base2'] + len_barcode], fasta))
-            if row['strand1'] == '-':
+            if row['strand1'] == '+':
+                gene1seq = (get_sequence([row['chrom1'], row['base1'] - len_barcode, row['base1']], fasta))
+            else:
+                gene1seq = (get_sequence([row['chrom1'], row['base1']-1, row['base1'] + len_barcode - 1], fasta))
                 gene1seq = Seq(gene1seq).reverse_complement()
-            elif row['strand2'] == '-':
+            if row['strand2'] == '+':
+                gene2seq = (get_sequence([row['chrom2'], row['base2']-1, row['base2'] + len_barcode - 1], fasta))
+            else:
+                gene2seq = (get_sequence([row['chrom2'], row['base2'] - len_barcode, row['base2']], fasta))
                 gene2seq = Seq(gene2seq).reverse_complement()
         else:
             gene1seq = None
@@ -109,13 +123,13 @@ def get_flexi_sequences(df, len_barcode, fasta):
     return df
 
 shr_output = sys.argv[1]
-reference = sys.argv[2]
-flexi_searchlen = sys.argv[3]
-out_dir = sys.argv[4]
-up = sys.argv[5]
-down = sys.argv[6]
-gene = reference + '/genes/genes.gtf'
-fasta = reference + '/fasta/genome.fa'
+gene = sys.argv[2]
+fasta = sys.argv[3]
+flexi_searchlen = sys.argv[4]
+out_dir = sys.argv[5]
+up = sys.argv[6]
+down = sys.argv[7]
+
 gene_dict = get_gene_dict(shr_output)
 add_gene_range = get_gene_range(gene, gene_dict)
 #with open(f'{out_dir}/generange.txt', 'w') as f:
