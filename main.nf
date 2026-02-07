@@ -18,6 +18,32 @@ workflow {
 	validateParameters()
 	log.info paramsSummaryLog(workflow)
 
+	// 10x Chromium protocol definitions
+	// Maps protocol name to [barcode_file, umi_length]
+	def protocol_config = [
+		// 3' Gene Expression chemistries
+		'10x-3prime-v2': ['737K-august-2016.txt.gz', 10],      // v2: discontinued, 10bp UMI
+		'10x-3prime-v3': ['3M-february-2018.txt.gz', 12],      // v3/v3.1: 12bp UMI
+		'10x-3prime-v4': ['3M-3pgex-may-2023.txt.gz', 12],     // v4: latest 3' chemistry, 12bp UMI
+		// 5' Gene Expression chemistries
+		'10x-5prime-v2': ['737K-august-2016.txt.gz', 10],      // v1/v2: same barcodes as 3' v2, 10bp UMI
+		'10x-5prime-v3': ['3M-5pgex-jan-2023.txt.gz', 12]      // v3: 12bp UMI
+	]
+
+	// Resolve protocol to barcode file and UMI length
+	if (params.protocol) {
+		def config = protocol_config[params.protocol]
+		barcode_file = params.barcode_include_list ?: "${projectDir}/assets/${config[0]}"
+		umi_length = params.umi_len ?: config[1]
+		log.info "Protocol ${params.protocol}: barcode_file=${barcode_file}, umi_len=${umi_length}"
+	} else if (params.barcode_include_list && params.umi_len) {
+		// Manual configuration
+		barcode_file = params.barcode_include_list
+		umi_length = params.umi_len
+	} else {
+		error "Either --protocol or both --barcode_include_list and --umi_len must be specified"
+	}
+
 	// Use pre-built references if all three are provided, otherwise download
 	if (params.ref_fasta && params.ref_gtf && params.star_genome_index) {
 		log.info "Using pre-built references: skipping download and index building"
@@ -33,7 +59,7 @@ workflow {
 	}
 
 	// Prepare barcode include list (decompress if gzipped)
- 	include_list  = prepareIncludeList(file(params.barcode_include_list))
+	include_list  = prepareIncludeList(file(barcode_file))
 
 	fusion_targets = genFusionTargets(
 		file(params.known_fusions_list),
@@ -78,7 +104,7 @@ workflow {
 		channel.fromPath(params.fastq_r2).collect(),
 		star_index,
 		include_list,
-		params.umi_len
+		umi_length
 	)
 
 	fuscia_result = runFuscia(fusion_target_rows, star_solo_result.bam, star_solo_result.bam_index, params.fuscia_mapqual)
