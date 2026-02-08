@@ -13,6 +13,6 @@ process calculateReadLength {
 
     script:
     """
-    calculate_read_length.py $fastq_files
+    calculate_read_length.py ${fastq_files}
     """
 }

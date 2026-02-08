@@ -15,6 +15,6 @@ process downloadReferences {
 
     script:
     """
-    download_references.py --reference $genome_version
+    download_references.py --reference ${genome_version}
     """
 }

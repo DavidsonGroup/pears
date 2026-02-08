@@ -16,9 +16,12 @@ process genFusionTargets {
 	script:
 	"""
 	gen_fusion_targets.py \
-		$known_list \
-		$ref_gene \
-		$ref_fasta \
-		$flexi_searchlen . $fuscia_up $fuscia_down
+		${known_list} \
+		${ref_gene} \
+		${ref_fasta} \
+		${flexi_searchlen} \
+		. \
+		${fuscia_up} \
+		${fuscia_down}
 	"""
 }

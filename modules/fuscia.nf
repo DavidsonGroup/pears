@@ -18,12 +18,7 @@ process runFuscia {
 	def fusion_name = "${fusion_genes}_${chrom1}_${base1}_${chrom2}_${base2}"
 
 	"""
-	# Define regions and fusion name in shell format
-	gr1=$gr1
-	gr2=$gr2
-	fusion_name=$fusion_name
-
 	# Run the fuscia discovery command
-	fuscia_discover_chimeric_transcripts.py $bam_file \$gr1 \$gr2 . \$fusion_name $mapqual
+	fuscia_discover_chimeric_transcripts.py ${bam_file} ${gr1} ${gr2} . ${fusion_name} ${mapqual}
 	"""
 }
