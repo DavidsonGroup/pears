@@ -84,8 +84,8 @@ process formatBAM {
 
 	script:
 	"""
-	$projectDir/modules/samtools-1.18/samtools view -H Aligned.sortedByCoord.out.bam | sed -E -e 's/SN:([0-9XY])/SN:chr\1/' -e 's/SN:MT/SN:chrM/' | samtools reheader - Aligned.sortedByCoord.out.bam > Aligned.sortedByCoord.out_chr.bam
+	samtools view -H Aligned.sortedByCoord.out.bam | sed -E -e 's/SN:([0-9XY])/SN:chr\1/' -e 's/SN:MT/SN:chrM/' | samtools reheader - Aligned.sortedByCoord.out.bam > Aligned.sortedByCoord.out_chr.bam
 
-	$projectDir/modules/samtools-1.18/samtools index file Aligned.sortedByCoord.out_chr.bam
+	samtools index Aligned.sortedByCoord.out_chr.bam
 	"""
 }
