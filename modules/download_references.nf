@@ -4,7 +4,7 @@
  */
 process downloadReferences {
     label 'process_low'
-    storeDir "${params.out_dir}/references/${genome_version}"
+    storeDir "${params.out_dir}/references/${genome_version.replace('+', '_')}"
 
     input:
     val genome_version
