@@ -24,7 +24,7 @@ process runFlexiplex {
 	# Run flexiplex with the specified parameters
 	paste <(gunzip -c ${fastq_r1}) <(gunzip -c ${fastq_r2}) | \
 	sed "/^[@+]/! s/^/START/g" | sed "/^[@+]/! s/	//g" | \
-	flexiplex -p $task.cpus -n ${fusion_name} \
+	flexiplex -p ${task.cpus} -n ${fusion_name} \
 		-x ${sequence1}${sequence2} -d grep -f 1 > ${fusion_name}_reads.fastq
 
 	flexiplex -x START \
