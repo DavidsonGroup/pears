@@ -1,6 +1,6 @@
 process buildSTARIndex {
 	label 'process_high'
-	publishDir "${params.out_dir}/STAR_index", mode: 'copy'
+	storeDir "${params.out_dir}/references/STAR_index"
 
 	input:
 	path(ref_fasta)
