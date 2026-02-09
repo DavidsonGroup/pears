@@ -20,7 +20,7 @@ def format_fuscia(input_files):
             df = pd.concat([df, r], axis=0, ignore_index=True)
 
     df['cell_barcode'] = df['cell_barcode'].str.replace('-1', "")
-    # Remove the last two columns (actually removes 3 in original)
+
     df = df.iloc[:, :-3]
     df = df.drop_duplicates()
     return df
