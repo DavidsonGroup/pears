@@ -13,6 +13,29 @@ include { runArriba } from './modules/arriba.nf'
 include { formatFuscia; formatFlexiplex; formatArriba } from './modules/formatting.nf'
 include { getBarcodesArriba } from './modules/arriba.nf'
 
+// Calculate barcode length from first line of barcode file (handles gzipped files)
+def getBarcodeLength(barcode_path) {
+	def f = file(barcode_path)
+	def isGz = barcode_path.toString().endsWith('.gz')
+	def first_line = null
+	if (isGz) {
+		f.withInputStream { stream ->
+			new java.util.zip.GZIPInputStream(stream).withReader { reader ->
+				first_line = reader.readLine()
+			}
+		}
+	} else {
+		f.withReader { reader ->
+			first_line = reader.readLine()
+		}
+	}
+
+	if (!first_line) {
+		error "No valid barcode line found in file: ${barcode_path}"
+	}
+	return first_line.length()
+}
+
 workflow {
 	// Validate parameters against schema
 	validateParameters()
@@ -43,6 +66,14 @@ workflow {
 	} else {
 		error "Either --protocol or both --barcode_include_list and --umi_len must be specified"
 	}
+
+	// Build default flexiplex demultiplex options if not provided
+	def barcode_length = getBarcodeLength(barcode_file)
+	def barcode_pattern = "?" * barcode_length
+	def umi_pattern = "?" * umi_length
+	def default_flexiplex_opts = "-b \"${barcode_pattern}\" -u \"${umi_pattern}\" -e 1 -f 0"
+	flexiplex_demultiplex_options = params.flexiplex_demultiplex_options ?: default_flexiplex_opts
+	log.info "Flexiplex demultiplex options: ${flexiplex_demultiplex_options} (barcode_len=${barcode_length}, umi_len=${umi_length})"
 
 	// Use pre-built references if all three are provided, otherwise download
 	if (params.ref_fasta && params.ref_gtf && params.star_genome_index) {
@@ -113,7 +144,7 @@ workflow {
 		include_list,
 		channel.fromPath(params.fastq_r1).collect(),
 		channel.fromPath(params.fastq_r2).collect(),
-		params.flexiplex_demultiplex_options
+		flexiplex_demultiplex_options
 	)
 	arriba_output = runArriba(star_solo_result.bam, ref_fasta, ref_gtf)
 	arriba_bc_output  = getBarcodesArriba(
@@ -121,7 +152,7 @@ workflow {
 		arriba_output,
 		include_list,
 		channel.fromPath(params.fastq_r1).collect(),
-		params.flexiplex_demultiplex_options
+		flexiplex_demultiplex_options
 	)
 
 	// collapse each into a single emission

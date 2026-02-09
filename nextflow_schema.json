@@ -176,8 +176,7 @@
                 },
                 "flexiplex_demultiplex_options": {
                     "type": "string",
-                    "default": "",
-                    "description": "Additional command-line options for flexiplex.",
+                    "description": "Override flexiplex demultiplex options. If set to null, options are auto-generated: -b \"?{barcode_length}\" (barcode length is dynamically determined from the barcode include-list file), -u \"<umi_pattern>\" (UMI length based on protocol or umi_len), -e 1 -f 0.",
                     "fa_icon": "fas fa-cog"
                 }
             }
