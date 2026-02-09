@@ -53,6 +53,8 @@ workflow {
 		'10x-5prime-v3': ['3M-5pgex-jan-2023.txt.gz', 12]      // v3: 12bp UMI
 	]
 
+	def umi_length = null
+	def barcode_file = null
 	// Resolve protocol to barcode file and UMI length
 	if (params.protocol) {
 		def config = protocol_config[params.protocol]
@@ -69,8 +71,8 @@ workflow {
 
 	// Build default flexiplex demultiplex options if not provided
 	def barcode_length = getBarcodeLength(barcode_file)
-	def barcode_pattern = "?" * barcode_length
-	def umi_pattern = "?" * umi_length
+	def barcode_pattern = "?" * barcode_length.toInteger()
+	def umi_pattern = "?" * umi_length.toInteger()
 	def default_flexiplex_opts = "-b \"${barcode_pattern}\" -u \"${umi_pattern}\" -e 1 -f 0"
 	flexiplex_demultiplex_options = params.flexiplex_demultiplex_options ?: default_flexiplex_opts
 	log.info "Flexiplex demultiplex options: ${flexiplex_demultiplex_options} (barcode_len=${barcode_length}, umi_len=${umi_length})"
