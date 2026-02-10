@@ -31,7 +31,7 @@ nextflow run DavidsonLab/pears \
   --known_fusions_list "known_fusions.csv" \
   --protocol "10x-3prime-v3" \
   --genome_version "GRCh38+GENCODE44" \
-  -profile local
+  -profile "local"
 ```
 
 Running on SLURM cluster:
@@ -48,39 +48,43 @@ nextflow run DavidsonLab/pears \
 
 ## Arguments
 
-### Required
+### Input files (required)
 
-| Argument | Description |
-|---|---|
-| `--fastq_r1` | Glob pattern or path to Read 1 FASTQ files (gzipped). |
-| `--fastq_r2` | Glob pattern or path to Read 2 FASTQ files (gzipped). |
-| `--known_fusions_list` | CSV file of known/candidate fusions to search for (see [Known fusions list format](#known-fusions-list-format)). |
-| `--protocol` | 10x Chromium chemistry preset. Sets the correct barcode whitelist and UMI length. Options: `10x-3prime-v2`, `10x-3prime-v3`, `10x-3prime-v4`, `10x-5prime-v2`, `10x-5prime-v3`. Can be omitted if `--barcode_include_list` and `--umi_len` are provided instead. |
+| Argument | Default | Description |
+|---|---|---|
+| `--fastq_r1` | — | Glob pattern or path to Read 1 FASTQ files (gzipped). |
+| `--fastq_r2` | — | Glob pattern or path to Read 2 FASTQ files (gzipped). |
+| `--known_fusions_list` | — | CSV file of known/candidate fusions to search for (see [Known fusions list format](#known-fusions-list-format)). |
+
+### Protocol and read structure
+
+Either `--protocol` **or** both `--barcode_include_list` and `--umi_len` must be provided.
+
+`--protocol` is the recommended way to configure the read structure — it automatically selects the correct barcode whitelist and UMI length for the given 10x chemistry. If `--barcode_include_list` or `--umi_len` are also provided, they **override** the corresponding value set by `--protocol`.
+
+| Argument | Default | Description |
+|---|---|---|
+| `--protocol` | — | 10x Chromium chemistry preset (see table below). |
+| `--barcode_include_list` | *set by `--protocol`* | Path to a custom barcode whitelist file (can be gzipped). **Overrides** the whitelist set by `--protocol`. |
+| `--umi_len` | *set by `--protocol`* | UMI length in bases. **Overrides** the value set by `--protocol`. |
 
 ### Reference genome
 
-If `--ref_fasta`, `--ref_gtf`, and `--star_genome_index` are not provided, the pipeline will automatically download the specified genome version and build the STAR index. To skip download and use pre-built references, provide all three of these arguments.
+Provide **all three** of `--ref_fasta`, `--ref_gtf`, and `--star_genome_index` to use pre-built references — this skips genome download and STAR index building. If any of the three is missing, the pipeline downloads the genome specified by `--genome_version` and builds the index automatically. In that case `--genome_version` is the only relevant argument; the other three are ignored.
 
-| Argument | Description |
-|---|---|
-| `--genome_version` | Genome build to download. Default: `GRCh38+GENCODE44`. |
-| `--ref_fasta` | Path to a pre-built genome FASTA. Skips download when provided with `--ref_gtf` and `--star_genome_index`. |
-| `--ref_gtf` | Path to a pre-built GTF annotation. |
-| `--star_genome_index` | Path to a pre-built STAR genome index directory. |
-
-### Read structure (advanced)
-
-| Argument | Description |
-|---|---|
-| `--barcode_include_list` | Path to a custom barcode whitelist file. Overrides the whitelist set by `--protocol`. |
-| `--umi_len` | UMI length in bases. Overrides the value set by `--protocol`. |
+| Argument | Default | Description |
+|---|---|---|
+| `--genome_version` | `GRCh38+GENCODE44` | Genome build to download. Available versions: `GRCh38+GENCODE40` through `GRCh38+GENCODE49`. **Ignored** when all three pre-built reference arguments are provided. |
+| `--ref_fasta` | — | Path to a pre-built genome FASTA. Must be provided together with `--ref_gtf` and `--star_genome_index`. |
+| `--ref_gtf` | — | Path to a pre-built GTF annotation. Must be provided together with `--ref_fasta` and `--star_genome_index`. |
+| `--star_genome_index` | — | Path to a pre-built STAR genome index directory. Must be provided together with `--ref_fasta` and `--ref_gtf`. |
 
 ### Tool parameters
 
 | Argument | Default | Description |
 |---|---|---|
 | `--flexiplex_searchlen` | `20` | Length of fusion junction sequence to search for (2x actual overlap). |
-| `--flexiplex_demultiplex_options` | auto | Flexiplex demultiplexing options. Auto-generated from barcode/UMI lengths if not set. |
+| `--flexiplex_demultiplex_options` | *auto-generated* | Flexiplex demultiplexing options string. When not set, auto-generated as `-b "?{barcode_len}" -u "?{umi_len}" -e 1 -f 0` where barcode length is read from the whitelist file and UMI length comes from `--protocol` or `--umi_len`. **Overrides** the auto-generated value when set explicitly. |
 | `--fuscia_mapqual` | `30` | Minimum mapping quality for FUSCIA read extraction. |
 | `--fuscia_up` | `1000` | Upstream search distance (bp) when no gene annotation is available. |
 | `--fuscia_down` | `1000` | Downstream search distance (bp) when no gene annotation is available. |
