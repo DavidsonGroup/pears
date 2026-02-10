@@ -45,12 +45,12 @@ workflow {
 	// Maps protocol name to [barcode_file, umi_length]
 	def protocol_config = [
 		// 3' Gene Expression chemistries
-		'10x-3prime-v2': ['737K-august-2016.txt.gz', 10],      // v2: discontinued, 10bp UMI
-		'10x-3prime-v3': ['3M-february-2018.txt.gz', 12],      // v3/v3.1: 12bp UMI
-		'10x-3prime-v4': ['3M-3pgex-may-2023.txt.gz', 12],     // v4: latest 3' chemistry, 12bp UMI
+		'10x-3prime-v2': ['737K-august-2016.txt.gz', 10],
+		'10x-3prime-v3': ['3M-february-2018.txt.gz', 12],
+		'10x-3prime-v4': ['3M-3pgex-may-2023.txt.gz', 12],
 		// 5' Gene Expression chemistries
-		'10x-5prime-v2': ['737K-august-2016.txt.gz', 10],      // v1/v2: same barcodes as 3' v2, 10bp UMI
-		'10x-5prime-v3': ['3M-5pgex-jan-2023.txt.gz', 12]      // v3: 12bp UMI
+		'10x-5prime-v2': ['737K-august-2016.txt.gz', 10],
+		'10x-5prime-v3': ['3M-5pgex-jan-2023.txt.gz', 12]
 	]
 
 	def umi_length = null
