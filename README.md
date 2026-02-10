@@ -48,61 +48,58 @@ nextflow run DavidsonLab/pears \
 
 ## Arguments
 
-### Input files (required)
+### Basic
 
 | Argument | Default | Description |
 |---|---|---|
 | `--fastq_r1` | — | Glob pattern or path to Read 1 FASTQ files (gzipped). |
 | `--fastq_r2` | — | Glob pattern or path to Read 2 FASTQ files (gzipped). |
 | `--known_fusions_list` | — | CSV file of known/candidate fusions to search for (see [Known fusions list format](#known-fusions-list-format)). |
+| `--protocol` | — | 10x Chromium chemistry preset (see [Protocol presets](#protocol-presets)). Sets the barcode whitelist and UMI length automatically. |
+| `--genome_version` | `GRCh38+GENCODE44` | Genome build to download. Available versions: `GRCh38+GENCODE40` through `GRCh38+GENCODE49`. |
+| `--out_dir` | `pears_output` | Directory for all pipeline outputs. |
+| `-profile` | — | Execution environment: `local` or `slurm`. |
 
-### Protocol and read structure
+### Protocol presets
 
-Either `--protocol` **or** both `--barcode_include_list` and `--umi_len` must be provided.
+`--protocol` sets the barcode whitelist and UMI length for the given 10x chemistry. These values can be individually overridden with `--barcode_include_list` and `--umi_len` (see [Read structure overrides](#read-structure-overrides)).
 
-`--protocol` is the recommended way to configure the read structure — it automatically selects the correct barcode whitelist and UMI length for the given 10x chemistry. If `--barcode_include_list` or `--umi_len` are also provided, they **override** the corresponding value set by `--protocol`.
+| Preset | Chemistry | UMI length | Barcode whitelist |
+|---|---|---|---|
+| `10x-3prime-v2` | 3' Gene Expression v2 | 10 bp | 737K-august-2016 |
+| `10x-3prime-v3` | 3' Gene Expression v3/v3.1 | 12 bp | 3M-february-2018 |
+| `10x-3prime-v4` | 3' Gene Expression v4 | 12 bp | 3M-3pgex-may-2023 |
+| `10x-5prime-v2` | 5' Gene Expression v1/v2 | 10 bp | 737K-august-2016 |
+| `10x-5prime-v3` | 5' Gene Expression v3 | 12 bp | 3M-5pgex-jan-2023 |
 
-| Argument | Default | Description |
+### Read structure overrides
+
+`--barcode_include_list` and `--umi_len` override the corresponding values set by `--protocol`. If `--protocol` is omitted entirely, **both** must be provided.
+
+| Argument | Default | Overrides |
 |---|---|---|
-| `--protocol` | — | 10x Chromium chemistry preset (see table below). |
-| `--barcode_include_list` | *set by `--protocol`* | Path to a custom barcode whitelist file (can be gzipped). **Overrides** the whitelist set by `--protocol`. |
-| `--umi_len` | *set by `--protocol`* | UMI length in bases. **Overrides** the value set by `--protocol`. |
+| `--barcode_include_list` | *set by `--protocol`* | Barcode whitelist. Path to a custom whitelist file (can be gzipped). |
+| `--umi_len` | *set by `--protocol`* | UMI length in bases. |
 
-### Reference genome
+### Pre-built reference overrides
 
-Provide **all three** of `--ref_fasta`, `--ref_gtf`, and `--star_genome_index` to use pre-built references — this skips genome download and STAR index building. If any of the three is missing, the pipeline downloads the genome specified by `--genome_version` and builds the index automatically. In that case `--genome_version` is the only relevant argument; the other three are ignored.
+By default, the pipeline downloads the genome specified by `--genome_version` and builds the STAR index automatically. To skip this, provide **all three** arguments below — `--genome_version` is then ignored.
 
-| Argument | Default | Description |
+| Argument | Default | Overrides |
 |---|---|---|
-| `--genome_version` | `GRCh38+GENCODE44` | Genome build to download. Available versions: `GRCh38+GENCODE40` through `GRCh38+GENCODE49`. **Ignored** when all three pre-built reference arguments are provided. |
-| `--ref_fasta` | — | Path to a pre-built genome FASTA. Must be provided together with `--ref_gtf` and `--star_genome_index`. |
-| `--ref_gtf` | — | Path to a pre-built GTF annotation. Must be provided together with `--ref_fasta` and `--star_genome_index`. |
-| `--star_genome_index` | — | Path to a pre-built STAR genome index directory. Must be provided together with `--ref_fasta` and `--ref_gtf`. |
+| `--ref_fasta` | *downloaded* | Genome FASTA. Must be provided together with `--ref_gtf` and `--star_genome_index`. |
+| `--ref_gtf` | *downloaded* | GTF annotation. Must be provided together with `--ref_fasta` and `--star_genome_index`. |
+| `--star_genome_index` | *built from download* | STAR genome index directory. Must be provided together with `--ref_fasta` and `--ref_gtf`. |
 
 ### Tool parameters
 
 | Argument | Default | Description |
 |---|---|---|
 | `--flexiplex_searchlen` | `20` | Length of fusion junction sequence to search for (2x actual overlap). |
-| `--flexiplex_demultiplex_options` | *auto-generated* | Flexiplex demultiplexing options string. When not set, auto-generated as `-b "?{barcode_len}" -u "?{umi_len}" -e 1 -f 0` where barcode length is read from the whitelist file and UMI length comes from `--protocol` or `--umi_len`. **Overrides** the auto-generated value when set explicitly. |
+| `--flexiplex_demultiplex_options` | *auto-generated* | Flexiplex demultiplexing options string. When not set, auto-generated as `-b "?{barcode_len}" -u "?{umi_len}" -e 1 -f 0` where barcode length is read from the whitelist file and UMI length comes from `--protocol` or `--umi_len`. Setting this explicitly overrides the auto-generated value. |
 | `--fuscia_mapqual` | `30` | Minimum mapping quality for FUSCIA read extraction. |
 | `--fuscia_up` | `1000` | Upstream search distance (bp) when no gene annotation is available. |
 | `--fuscia_down` | `1000` | Downstream search distance (bp) when no gene annotation is available. |
-
-### Output
-
-| Argument | Default | Description |
-|---|---|---|
-| `--out_dir` | `pears_output` | Directory for all pipeline outputs. |
-
-### Profiles
-
-Use `-profile` to select the execution environment:
-
-| Profile | Description |
-|---|---|
-| `local` | Run on the local machine. |
-| `slurm` | Submit jobs to a SLURM cluster. |
 
 ## Known fusions list format
 
