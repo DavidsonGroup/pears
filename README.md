@@ -9,10 +9,7 @@ PEARS is a Nextflow DSL2 pipeline that detects gene fusions at single-cell resol
 1. **Reference preparation** — Downloads genome FASTA and GTF annotation (or uses pre-built references).
 2. **Fusion target generation** — Builds search targets from a known fusions list using the reference annotation.
 3. **Alignment** — Aligns reads with STARsolo (chimeric-aware) and produces a BAM and single-cell count matrix.
-4. **Fusion detection** - Calls fusions using three tools in parallel:
-   - **FUSCIA**
-   - **Flexiplex**
-   - **Arriba**
+4. **Fusion detection** - Calls fusions using [FUSCIA](https://github.com/ding-lab/fuscia), [Flexiplex](https://github.com/DavidsonGroup/flexiplex), and [Arriba](https://github.com/suhrig/arriba) in parallel.
 5. **Formatting** — Consolidates results into three CSV files of per-cell fusion calls (`fuscia_fusion_calls.csv`, `flexiplex_fusion_calls.csv`, `arriba_fusion_calls.csv`).
 
 ## Requirements
@@ -132,9 +129,9 @@ Results are written to `--out_dir` (default `pears_output/`):
 
 | File/Directory | Description |
 |---|---|
-| `fuscia_fusion_calls.csv` | Per-cell fusion calls (cell barcode, UMI, fusion) from FUSCIA. |
-| `flexiplex_fusion_calls.csv` | Per-cell fusion calls (cell barcode, UMI, fusion) from Flexiplex. |
-| `arriba_fusion_calls.csv` | Per-cell fusion calls (cell barcode, UMI, fusion) from Arriba. |
+| `fuscia_fusion_calls.csv` | Per-cell fusion calls from FUSCIA. |
+| `flexiplex_fusion_calls.csv` | Per-cell fusion calls from Flexiplex. |
+| `arriba_fusion_calls.csv` | Per-cell fusion calls from Arriba. |
 | `STARsolo/` | BAM alignment, index, and single-cell count matrix. |
 | `fuscia_out/` | Per-fusion FUSCIA discordant read files. |
 | `flexiplex_out/` | Per-fusion Flexiplex barcode files. |
@@ -142,6 +139,27 @@ Results are written to `--out_dir` (default `pears_output/`):
 | `fusion_targets.csv` | Generated fusion target coordinates and sequences. |
 | `nextflow_report.html` | Nextflow execution report. |
 | `nextflow_trace.txt` | Nextflow process trace log. |
+
+### Fusion calls CSV format
+
+The three fusion calls CSVs (`fuscia_fusion_calls.csv`, `flexiplex_fusion_calls.csv`, `arriba_fusion_calls.csv`) share the same format:
+
+| Column | Description |
+|---|---|
+| `cell_barcode` | 10x cell barcode (CB tag) identifying the single cell. The trailing `-1` suffix is stripped. |
+| `molecular_barcode` | Unique Molecular Identifier (UMI / UB tag) distinguishing distinct RNA molecules from PCR duplicates within the same cell. |
+| `fusion` | Detected gene fusion, formatted as `GENE1--GENE2` (names taken from the `--known_fusions_list` input). |
+
+Example:
+
+```
+cell_barcode,molecular_barcode,fusion
+CCACAAAAGGTTCTTG,CAGGGATCAGTA,JPH1--NCOA2
+CAGGGCTCACTTGGGC,TGATAGGAATCG,JPH1--NCOA2
+GTGTGGCGTGGCCCAT,GGTAATCAGCAA,KIAA1429--RP11-586K2.1
+```
+
+Each row represents one unique observation of a fusion transcript in a specific cell. Rows are deduplicated — each (cell_barcode, molecular_barcode, fusion) triple appears at most once. Multiple rows with different cell barcodes for the same fusion indicate independent cells harbouring that fusion. Multiple rows with the same cell barcode but different UMIs for the same fusion indicate multiple distinct fusion transcript molecules captured in that cell, providing stronger evidence. Fusions detected by more than one tool in the same cell are higher confidence and can be identified by cross-referencing the three CSVs.
 
 ## Credits
 
