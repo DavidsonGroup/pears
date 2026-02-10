@@ -3,21 +3,21 @@ process runArriba {
 	publishDir "${params.out_dir}/arriba_out", mode: 'copy'
 
 	input:
-	path bam_file
-	path ref_fasta
-	path ref_gene
+	path(bam_file)
+	path(ref_fasta)
+	path(ref_gene)
 
 	output:
-	path "fusions.tsv"
+	path("fusions.tsv")
 
 	script:
 	"""
 	arriba \
-		-x $bam_file \
+		-x ${bam_file} \
 		-o fusions.tsv \
 		-O fusions.discarded.tsv \
-		-a $ref_fasta \
-		-g $ref_gene \
+		-a ${ref_fasta} \
+		-g ${ref_gene} \
 		-f blacklist
 	"""
 }
@@ -30,8 +30,8 @@ process getBarcodesArriba {
 	tuple val(fusion_genes), val(chrom1), val(gene1), val(base1), val(sequence1), val(chrom2), val(gene2), val(base2), val(sequence2)
 	path(fusion_table)
 	path(include_list)
-	path fastq_r1
-	val flexiplex_demultiplex_options
+	path(fastq_r1)
+	val(flexiplex_demultiplex_options)
 
 	output:
 	path("barcodes_${fusion_genes}_${chrom1}_${base1}_${chrom2}_${base2}_reads_barcodes.txt")

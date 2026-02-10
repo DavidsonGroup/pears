@@ -6,7 +6,7 @@ process calculateReadLength {
     label 'process_tiny'
 
     input:
-    path fastq_files
+    path(fastq_files)
 
     output:
     stdout

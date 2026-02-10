@@ -10,10 +10,10 @@ process runFlexiplex {
 
 	input:
 	tuple val(fusion_genes), val(chrom1), val(gene1), val(base1), val(sequence1), val(chrom2), val(gene2), val(base2), val(sequence2)
-	path include_list
-	path fastq_r1
-	path fastq_r2
-	val flexiplex_demultiplex_options
+	path(include_list)
+	path(fastq_r1)
+	path(fastq_r2)
+	val(flexiplex_demultiplex_options)
 
 	output:
 	path "barcodes_${fusion_genes}_${chrom1}_${base1}_${chrom2}_${base2}_reads_barcodes.txt"

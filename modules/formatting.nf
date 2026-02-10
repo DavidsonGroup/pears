@@ -7,7 +7,7 @@ process formatFuscia {
 	val(output_file)
 
 	output:
-	path "${output_file}"
+	path("${output_file}")
 
 	script:
 	def input_files = fuscia_files.collect { f -> f.name }.join(' ')
@@ -25,7 +25,7 @@ process formatFlexiplex {
 	val(output_file)
 
 	output:
-	path "${output_file}"
+	path("${output_file}")
 
 	script:
 	def input_files = barcode_files.collect { f -> f.name }.join(' ')
@@ -43,7 +43,7 @@ process formatArriba {
 	val(output_file)
 
 	output:
-	path "${output_file}"
+	path("${output_file}")
 
 	script:
 	def input_files = barcode_files.collect { f -> f.name }.join(' ')

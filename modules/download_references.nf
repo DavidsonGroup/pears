@@ -7,7 +7,7 @@ process downloadReferences {
     storeDir "${params.out_dir}/references/${genome_version.replace('+', '_')}"
 
     input:
-    val genome_version
+    val(genome_version)
 
     output:
     path("*.fa"), emit: fasta

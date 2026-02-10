@@ -3,12 +3,12 @@ process genFusionTargets {
 	publishDir params.out_dir, mode: 'copy'
 
 	input:
-	path known_list
-	path ref_gene
-	path ref_fasta
-	val flexi_searchlen
-	val fuscia_up
-	val fuscia_down
+	path(known_list)
+	path(ref_gene)
+	path(ref_fasta)
+	val(flexi_searchlen)
+	val(fuscia_up)
+	val(fuscia_down)
 
 	output:
 	path "fusion_targets.csv"

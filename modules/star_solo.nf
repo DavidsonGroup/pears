@@ -1,6 +1,6 @@
 process buildSTARIndex {
 	label 'process_high'
-	storeDir "${params.out_dir}/references/STAR_index"
+	storeDir "${params.out_dir}/references/"
 
 	input:
 	path(ref_fasta)
@@ -8,18 +8,19 @@ process buildSTARIndex {
 	val(read_length)
 
 	output:
-	path("star_index"), emit: index
+	path("${star_index_dir}"), emit: index
 
 	script:
-	def sjdb_overhang = read_length.toInteger() - 1
+	sjdb_overhang = read_length.toInteger() - 1
+	star_index_dir = "star_index"
 	"""
 	STAR \
 		--runMode genomeGenerate \
-		--runThreadN $task.cpus \
-		--genomeDir star_index \
-		--genomeFastaFiles $ref_fasta \
-		--sjdbGTFfile $ref_gtf \
-		--sjdbOverhang $sjdb_overhang
+		--runThreadN ${task.cpus} \
+		--genomeDir ${star_index_dir} \
+		--genomeFastaFiles ${ref_fasta} \
+		--sjdbGTFfile ${ref_gtf} \
+		--sjdbOverhang ${sjdb_overhang}
 	"""
 }
 
@@ -28,11 +29,11 @@ process runSTARSolo {
 	publishDir "${params.out_dir}/STARsolo", mode: 'copy'
 
 	input:
-	path read1
-	path read2
-	path genome_index
-	path include_list
-	val umi_len
+	path(read1)
+	path(read2)
+	path(genome_index)
+	path(include_list)
+	val(umi_len)
 
 	output:
 	path("Aligned.sortedByCoord.out.bam"), emit: bam
@@ -44,10 +45,10 @@ process runSTARSolo {
 	script:
 	"""
 	STAR \
-		--runThreadN $task.cpus \
-		--genomeDir $genome_index \
+		--runThreadN ${task.cpus} \
+		--genomeDir ${genome_index} \
 		--genomeLoad NoSharedMemory \
-		--readFilesIn $read2 $read1 \
+		--readFilesIn ${read2} ${read1} \
 		--readFilesCommand zcat \
 		--outSAMtype BAM SortedByCoordinate \
 		--outSAMunmapped Within \

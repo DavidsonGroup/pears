@@ -2,10 +2,10 @@ process prepareIncludeList {
 	label 'process_tiny'
 
 	input:
-	path include_list_file
+	path(include_list_file)
 
 	output:
-	path "include_list.txt"
+	path("include_list.txt")
 
 	script:
 	"""
