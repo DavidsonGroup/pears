@@ -163,7 +163,7 @@ workflow {
 	arriba_bc_collected = arriba_bc_output | collect
 
 	// formatting
-	formatFuscia(fuscia_collected, "master_fuscia.csv")
-	formatFlexiplex(flexiplex_collected, "master_flexiplex.csv")
-	formatArriba(arriba_bc_collected, "master_arriba.csv")
+	formatFuscia(fuscia_collected, "fuscia_fusion_calls.csv")
+	formatFlexiplex(flexiplex_collected, "flexiplex_fusion_calls.csv")
+	formatArriba(arriba_bc_collected, "arriba_fusion_calls.csv")
 }
