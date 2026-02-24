@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
 Created on Mon Mar 20 20:11:22 2023
 
@@ -8,7 +9,7 @@ Created on Mon Mar 20 20:11:22 2023
 #input: gene_file(*/reference/gene/genes.gtf (refdata)), fusion_list (e.g. jjaffa output file)
 #if region is bigger/smaller than breakpoint site = region
 #output: {gene: [start, end]}
-#issue: if name does not match (ENSG code might match) it is ignored. 
+#issue: if name does not match (ENSG code might match) it is ignored.
 import pandas as pd
 import pybedtools
 import os
@@ -18,7 +19,7 @@ import sys
 def get_gene_dict(shr_output):
     r = pd.read_csv(shr_output)
     f = r["fusion genes"].str.split('--', expand = True).to_numpy().flatten()
-    
+
     gene_dict = {}
 
     for i in f:
@@ -30,7 +31,7 @@ def get_gene_dict(shr_output):
 
 def get_gene_range(gene_gtf, gene_dict):
     df = pd.read_csv(gene_gtf, delimiter="\t", usecols=[0, 2, 3, 4, 8] , skiprows=(5), header=None, names=['chrom', 'feature', 'start', 'end', 'attributes'])
-    
+
 
     df['attributes'] = df['attributes'].str.rsplit('gene_name "').str.get(1)
     df['attributes'] = df['attributes'].str.rsplit('";').str.get(0)
@@ -85,7 +86,7 @@ def gene_range(shr_output, gene_dict, up, down):
     df['gene1'] = gene1
     df['gene2'] = gene2
     #df.set_index('fusion genes', inplace =True)
-    
+
     return df
 
 def get_sequence(gene, fasta):
@@ -114,7 +115,7 @@ def get_flexi_sequences(df, len_barcode, fasta):
             gene1seq = None
             gene2seq = None
         gene1_seq.append(str(gene1seq).upper())
-        gene2_seq.append(str(gene2seq).upper())	
+        gene2_seq.append(str(gene2seq).upper())
 
 
     df['sequence1'] = gene1_seq
@@ -122,21 +123,26 @@ def get_flexi_sequences(df, len_barcode, fasta):
 
     return df
 
-shr_output = sys.argv[1]
-gene = sys.argv[2]
-fasta = sys.argv[3]
-flexi_searchlen = sys.argv[4]
-out_dir = sys.argv[5]
-up = sys.argv[6]
-down = sys.argv[7]
+def main():
+    shr_output = sys.argv[1]
+    gene = sys.argv[2]
+    fasta = sys.argv[3]
+    flexi_searchlen = sys.argv[4]
+    out_dir = sys.argv[5]
+    up = sys.argv[6]
+    down = sys.argv[7]
 
-gene_dict = get_gene_dict(shr_output)
-add_gene_range = get_gene_range(gene, gene_dict)
-#with open(f'{out_dir}/generange.txt', 'w') as f:
-    #for key in add_gene_range.keys():
-        #f.write("%s, %s\n"%(key, add_gene_range[key]))
-fuscia_gene_range = gene_range(shr_output, add_gene_range, up, down)
-flexi_gene_range = get_flexi_sequences(fuscia_gene_range, int(flexi_searchlen), fasta)
-flexi_gene_range = flexi_gene_range.rename(columns={"fusion genes": "fusion_genes"})
-flexi_gene_range = flexi_gene_range.drop_duplicates() #remove duplicates in the fusion list
-flexi_gene_range.to_csv(f'{out_dir}/masterdata.csv', index = False)
+    gene_dict = get_gene_dict(shr_output)
+    add_gene_range = get_gene_range(gene, gene_dict)
+    #with open(f'{out_dir}/generange.txt', 'w') as f:
+        #for key in add_gene_range.keys():
+            #f.write("%s, %s\n"%(key, add_gene_range[key]))
+    fuscia_gene_range = gene_range(shr_output, add_gene_range, up, down)
+    flexi_gene_range = get_flexi_sequences(fuscia_gene_range, int(flexi_searchlen), fasta)
+    flexi_gene_range = flexi_gene_range.rename(columns={"fusion genes": "fusion_genes"})
+    flexi_gene_range = flexi_gene_range.drop_duplicates() #remove duplicates in the fusion list
+    flexi_gene_range.to_csv(f'{out_dir}/fusion_targets.csv', index = False)
+
+
+if __name__ == "__main__":
+    main()

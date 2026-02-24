@@ -1,11 +1,14 @@
 name: pears
 channels:
-- conda-forge
-- bioconda
+  - conda-forge
+  - bioconda
 dependencies:
-  - python = 3.9
-  - pysam
-  - pandas
-  - biopython
-  - pybedtools
-  - bedtools
+  - python=3.12
+  - samtools=1.21
+  - star=2.7.11b
+  - arriba=2.5.1
+  - flexiplex=1.02.5
+  - pysam=0.23.3
+  - pandas=2.2.3
+  - pybedtools=0.12.0
+  - biopython=1.85

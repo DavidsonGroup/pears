@@ -1,0 +1,193 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://raw.githubusercontent.com/pears-pipeline/pears/main/nextflow_schema.json",
+    "title": "PEARS Pipeline Parameters",
+    "description": "Single-cell fusion detection pipeline",
+    "type": "object",
+    "defs": {
+        "input_options": {
+            "title": "Input Options",
+            "type": "object",
+            "description": "Input FASTQ files and fusion list",
+            "properties": {
+                "fastq_r1": {
+                    "type": "string",
+                    "format": "path",
+                    "pattern": "^\\S+\\.f(ast)?q(\\.gz)?$|^\\S+\\*\\S*$",
+                    "description": "Path to Read 1 FASTQ file(s). Glob patterns allowed.",
+                    "fa_icon": "fas fa-dna"
+                },
+                "fastq_r2": {
+                    "type": "string",
+                    "format": "path",
+                    "pattern": "^\\S+\\.f(ast)?q(\\.gz)?$|^\\S+\\*\\S*$",
+                    "description": "Path to Read 2 FASTQ file(s). Glob patterns allowed.",
+                    "fa_icon": "fas fa-dna"
+                },
+                "known_fusions_list": {
+                    "type": "string",
+                    "format": "file-path",
+                    "mimetype": "text/csv",
+                    "description": "CSV file containing known fusions (e.g., JAFFA output).",
+                    "fa_icon": "fas fa-file-csv"
+                }
+            },
+            "required": ["fastq_r1", "fastq_r2", "known_fusions_list"]
+        },
+        "reference_options": {
+            "title": "Reference Options",
+            "type": "object",
+            "description": "Reference genome configuration",
+            "properties": {
+                "genome_version": {
+                    "type": "string",
+                    "default": "GRCh38+GENCODE44",
+                    "description": "Genome assembly and annotation version. References will be downloaded automatically if ref_fasta, ref_gtf, and star_genome_index are not provided.",
+                    "fa_icon": "fas fa-dna",
+                    "enum": [
+                        "GRCh38+GENCODE40",
+                        "GRCh38+GENCODE41",
+                        "GRCh38+GENCODE42",
+                        "GRCh38+GENCODE43",
+                        "GRCh38+GENCODE44",
+                        "GRCh38+GENCODE45",
+                        "GRCh38+GENCODE46",
+                        "GRCh38+GENCODE47",
+                        "GRCh38+GENCODE48",
+                        "GRCh38+GENCODE49"
+                    ]
+                },
+                "star_genome_index": {
+                    "type": "string",
+                    "format": "directory-path",
+                    "description": "Path to pre-built STAR genome index. If provided, ref_fasta and ref_gtf must also be provided.",
+                    "fa_icon": "fas fa-folder"
+                },
+                "ref_fasta": {
+                    "type": "string",
+                    "format": "file-path",
+                    "description": "Path to reference genome FASTA file. If provided, ref_gtf and star_genome_index must also be provided.",
+                    "fa_icon": "fas fa-file"
+                },
+                "ref_gtf": {
+                    "type": "string",
+                    "format": "file-path",
+                    "description": "Path to reference GTF annotation file. If provided, ref_fasta and star_genome_index must also be provided.",
+                    "fa_icon": "fas fa-file-alt"
+                }
+            },
+            "dependentRequired": {
+                "star_genome_index": ["ref_fasta", "ref_gtf"],
+                "ref_fasta": ["ref_gtf", "star_genome_index"],
+                "ref_gtf": ["ref_fasta", "star_genome_index"]
+            }
+        },
+        "output_options": {
+            "title": "Output Options",
+            "type": "object",
+            "description": "Output directory configuration",
+            "properties": {
+                "out_dir": {
+                    "type": "string",
+                    "format": "directory-path",
+                    "default": "pears_output",
+                    "description": "Directory for pipeline output files.",
+                    "fa_icon": "fas fa-folder-open"
+                }
+            }
+        },
+        "protocol_options": {
+            "title": "Protocol Preset Options",
+            "type": "object",
+            "description": "Choose a protocol preset OR provide both umi_len and barcode_include_list manually.",
+            "properties": {
+                "protocol": {
+                    "type": "string",
+                    "description": "10x Chromium chemistry preset. Sets the correct barcode whitelist and UMI length automatically.",
+                    "fa_icon": "fas fa-flask",
+                    "enum": [
+                        "10x-3prime-v2",
+                        "10x-3prime-v3",
+                        "10x-3prime-v4",
+                        "10x-5prime-v2",
+                        "10x-5prime-v3"
+                    ],
+                    "enumNames": [
+                        "10x 3' Gene Expression v2 (UMI: 10bp, Barcodes: 737K-august-2016.txt.gz)",
+                        "10x 3' Gene Expression v3/v3.1 (UMI: 12bp, Barcodes: 3M-february-2018.txt.gz)",
+                        "10x 3' Gene Expression v4 (UMI: 12bp, Barcodes: 3M-3pgex-may-2023.txt.gz)",
+                        "10x 5' Gene Expression v1/v2 (UMI: 10bp, Barcodes: 737K-august-2016.txt.gz)",
+                        "10x 5' Gene Expression v3 (UMI: 12bp, Barcodes: 3M-5pgex-jan-2023.txt.gz)"
+                    ]
+                },
+                "umi_len": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "Length of UMI in nucleotides. Auto-set by protocol (10bp for v2, 12bp for v3+). Only required if protocol is not specified.",
+                    "fa_icon": "fas fa-barcode"
+                },
+                "barcode_include_list": {
+                    "type": "string",
+                    "format": "file-path",
+                    "description": "Path to custom cell barcode whitelist file (can be gzipped). Overrides the protocol default if specified.",
+                    "fa_icon": "fas fa-list"
+                }
+            }
+        },
+        "fuscia_options": {
+            "title": "FUSCIA Options",
+            "type": "object",
+            "description": "Parameters for fusion read extraction",
+            "properties": {
+                "fuscia_mapqual": {
+                    "type": "integer",
+                    "default": 30,
+                    "minimum": 0,
+                    "description": "Minimum mapping quality for reads.",
+                    "fa_icon": "fas fa-filter"
+                },
+                "fuscia_up": {
+                    "type": "integer",
+                    "default": 1000,
+                    "minimum": 0,
+                    "description": "Upstream search distance (bp) when no gene annotation available.",
+                    "fa_icon": "fas fa-arrow-left"
+                },
+                "fuscia_down": {
+                    "type": "integer",
+                    "default": 1000,
+                    "minimum": 0,
+                    "description": "Downstream search distance (bp) when no gene annotation available.",
+                    "fa_icon": "fas fa-arrow-right"
+                }
+            }
+        },
+        "flexiplex_options": {
+            "title": "Flexiplex Options",
+            "type": "object",
+            "description": "Parameters for barcode demultiplexing",
+            "properties": {
+                "flexiplex_searchlen": {
+                    "type": "integer",
+                    "default": 20,
+                    "minimum": 0,
+                    "description": "Search length for fusion sequence (2x actual length). Longer values increase runtime.",
+                    "fa_icon": "fas fa-search"
+                },
+                "flexiplex_demultiplex_options": {
+                    "type": "string",
+                    "description": "Override flexiplex demultiplex options. If set to null, options are auto-generated: -b \"?{barcode_length}\" (barcode length is dynamically determined from the barcode include-list file), -u \"<umi_pattern>\" (UMI length based on protocol or umi_len), -e 1 -f 0.",
+                    "fa_icon": "fas fa-cog"
+                }
+            }
+        }
+    },
+    "allOf": [
+        { "$ref": "#/defs/input_options" },
+        { "$ref": "#/defs/protocol_options" },
+        { "$ref": "#/defs/reference_options" },
+        { "$ref": "#/defs/output_options" },
+        { "$ref": "#/defs/flexiplex_options" },
+        { "$ref": "#/defs/fuscia_options" }
+    ]
+}

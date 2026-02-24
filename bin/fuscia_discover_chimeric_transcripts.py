@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # Script to discover transcripts with reads mapping to different chromosomes from 10X single cell RNA-seq data
 # Usages: python discover_discordant_reads.py scRNA-seq.bam chrA:pos-pos chrB:pos-pos output_dir output_prefix min_mapq
 # Author: Steven Foltz (June 2019)
@@ -13,14 +14,14 @@ def extract_read_info(read, min_mapq):
     return(None)
   elif read.has_tag("CB") and read.has_tag("UB"): #and read.has_tag("BC"):
     return(return_read_info(read))
-  else: 
+  else:
     return(None)
 
 def return_read_info(read):
   # If a read passes quality filters and has CB, UB, and BC tags:
   # Return a dictionary of relevant read information, including
   # Mapping position of read and mate, all barcode information
-  return_dict = {}  
+  return_dict = {}
   return_dict["this_chromosome"] = str(read.reference_name)
   return_dict["this_start_bp"] = int(read.reference_start)
   return_dict["this_end_bp"] = int(read.reference_end)
@@ -54,7 +55,7 @@ for read in samfile.fetch(chrA, chrA_minpos, chrA_maxpos):
   if read_info == None:
     next
   else:
-    CB = read_info["CB"] 
+    CB = read_info["CB"]
     UB = read_info["UB"]
     if CB+":"+UB in chrA_reads:
       if read_info["this_chromosome"] in chrA_reads[CB+":"+UB]:
@@ -62,7 +63,7 @@ for read in samfile.fetch(chrA, chrA_minpos, chrA_maxpos):
       else:
         chrA_reads[CB+":"+UB][read_info["this_chromosome"]] = 1
     else:
-      chrA_reads[CB+":"+UB] = {read_info["this_chromosome"]: 1}  
+      chrA_reads[CB+":"+UB] = {read_info["this_chromosome"]: 1}
 samfile.close()
 
 print("through chrA first time")
@@ -98,7 +99,7 @@ for key in chrA_reads:
 print("found "+str(n_overlapping)+" overlapping barcodes")
 
 discordant_reads_list = []
-    
+
 # get reads from chimeric transcript
 # iterate over chrA (again)
 samfile = pysam.AlignmentFile(bam_filename, "rb")

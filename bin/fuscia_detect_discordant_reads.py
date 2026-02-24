@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # Script to detect discordant reads from 10X single cell RNA-seq data
 # Usages: python detect_discordant_reads.py star-fusion_output_file scRNA-seq.bam output_dir output_prefix region_plusminus min_mapq
 # Author: Steven Foltz (June 2019)
@@ -13,14 +14,14 @@ def extract_read_info(read, min_mapq):
     return(None)
   elif read.has_tag("CB") and read.has_tag("UB"): #and read.has_tag("BC"):
     return(return_read_info(read))
-  else: 
+  else:
     return(None)
 
 def return_read_info(read):
   # If a read passes quality filters and has CB, UB, and BC tags:
   # Return a dictionary of relevant read information, including
   # Mapping position of read and mate, all barcode information
-  return_dict = {}  
+  return_dict = {}
   return_dict["this_chromosome"] = str(read.reference_name)
   return_dict["this_start_bp"] = int(read.reference_start)
   return_dict["this_end_bp"] = int(read.reference_end)
@@ -50,8 +51,8 @@ for line in star_fusion:
     chromB = RightBreakpoint.split(":")[0][3:]
     min_posB = int(RightBreakpoint.split(":")[1]) - plusminus
     max_posB = int(RightBreakpoint.split(":")[1]) + plusminus
-    
-    # main business 
+
+    # main business
     rangeA_reads = {}
     rangeB_reads = {}
 
@@ -62,12 +63,12 @@ for line in star_fusion:
       if read_info == None:
         next
       else:
-        CB = read_info["CB"] 
+        CB = read_info["CB"]
         UB = read_info["UB"]
         if CB+":"+UB in rangeA_reads:
           rangeA_reads[CB+":"+UB].append(read_info)
         else:
-          rangeA_reads[CB+":"+UB] = [read_info]   
+          rangeA_reads[CB+":"+UB] = [read_info]
     samfile.close()
 
     # iterate over rangeB
@@ -104,4 +105,4 @@ output_file = open(output_file_path, "w")
 output_file.write("\t".join(["cell_barcode", "molecular_barcode", "chrom", "start", "end", "fusion"]) + "\n") # list of column headers
 for dis_read in sorted(unique_discordant_reads_list):
   output_file.write("\t".join(dis_read) + "\n") # write info for each discordant read
-output_file.close() 
+output_file.close()
