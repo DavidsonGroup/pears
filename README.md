@@ -28,7 +28,8 @@ nextflow run DavidsonLab/pears \
   --known_fusions_list "known_fusions.csv" \
   --protocol "10x-3prime-v3" \
   --genome_version "GRCh38+GENCODE44" \
-  -profile "local"
+  -profile "local" \
+  -resume
 ```
 
 Running on SLURM cluster:
@@ -40,8 +41,16 @@ nextflow run DavidsonLab/pears \
   --known_fusions_list "known_fusions.csv" \
   --protocol "10x-3prime-v3" \
   --genome_version "GRCh38+GENCODE44" \
-  -profile "slurm"
+  -profile "slurm" \
+  -resume
 ```
+
+## Reusing references
+
+> [!TIP]
+> After running the pipeline for the first time, you can extract the references and index from the `references/` and `STAR_index/` folders in the output directory. Note that the STAR index is built with a specific `--sjdbOverhang` parameter according to the [read length of the input FASTQ](https://www.biostars.org/p/93883/). If you want to reuse the same index, make sure that the read lengths of the new FASTQ files are the same as the original ones. If they differ, you should rebuild the STAR index with the appropriate `--sjdbOverhang` (read length - 1) for optimal performance.
+
+See [Pre-built or reusing reference overrides](#pre-built-or-reusing-reference-overrides) for the relevant arguments.
 
 ## Arguments
 
@@ -78,7 +87,7 @@ nextflow run DavidsonLab/pears \
 | `--barcode_include_list` | *set by `--protocol`* | Barcode whitelist. Path to a custom whitelist file (can be gzipped). |
 | `--umi_len` | *set by `--protocol`* | UMI length in bases. |
 
-### Pre-built reference overrides
+### Pre-built or reusing reference overrides
 
 By default, the pipeline downloads the genome specified by `--genome_version` and builds the STAR index automatically. To skip this, provide **all three** arguments below — `--genome_version` is then ignored.
 
