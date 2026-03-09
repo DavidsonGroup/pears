@@ -45,6 +45,8 @@ nextflow run DavidsonLab/pears \
   -resume
 ```
 
+Running on SLURM will be much faster due to parallelization of the fusion detection step. The `-resume` flag allows you to continue from the last successful step if the pipeline is interrupted.
+
 ## Reusing references
 
 > [!TIP]
