@@ -162,6 +162,34 @@
                 }
             }
         },
+        "resource_options": {
+            "title": "Resource Options",
+            "type": "object",
+            "description": "CPU, memory, and time limits applied to all processes",
+            "properties": {
+                "cpus": {
+                    "type": "integer",
+                    "default": 16,
+                    "minimum": 1,
+                    "description": "Number of CPUs to allocate to each process.",
+                    "fa_icon": "fas fa-microchip"
+                },
+                "memory": {
+                    "type": "string",
+                    "default": "128 GB",
+                    "pattern": "^\\d+(\\.\\d+)?\\s*(B|KB|MB|GB|TB)$",
+                    "description": "Memory to allocate to each process (e.g. '64 GB').",
+                    "fa_icon": "fas fa-memory"
+                },
+                "time": {
+                    "type": "string",
+                    "default": "48h",
+                    "pattern": "^(\\d+d)?(\\d+h)?(\\d+m)?(\\d+s)?$",
+                    "description": "Wall-time limit for each process (e.g. '24h', '2d12h').",
+                    "fa_icon": "fas fa-clock"
+                }
+            }
+        },
         "flexiplex_options": {
             "title": "Flexiplex Options",
             "type": "object",
@@ -187,6 +215,7 @@
         { "$ref": "#/defs/protocol_options" },
         { "$ref": "#/defs/reference_options" },
         { "$ref": "#/defs/output_options" },
+        { "$ref": "#/defs/resource_options" },
         { "$ref": "#/defs/flexiplex_options" },
         { "$ref": "#/defs/fuscia_options" }
     ]
