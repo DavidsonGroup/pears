@@ -30,9 +30,21 @@
                     "mimetype": "text/csv",
                     "description": "CSV file containing known fusions (e.g., JAFFA output).",
                     "fa_icon": "fas fa-file-csv"
-                }
+                },
+		"discover_fusions": {
+		    "type": "boolean",
+		    "default": false,
+		    "description": "Whether to search for new fusions in addition to those in known_fusions_list"
+		},
+		"min_arriba_support": {
+		    "type": "integer",
+		    "default": 1,
+		    "minimum": 1,
+		    "description": "Minimum read support required before a new fusion is searched for. Only applicable when discover_fusions is true"
+		},
+
             },
-            "required": ["fastq_r1", "fastq_r2", "known_fusions_list"]
+            "required": ["fastq_r1", "fastq_r2"]
         },
         "reference_options": {
             "title": "Reference Options",

@@ -51,3 +51,25 @@ process formatArriba {
 	format_barcodes.py --type arriba --output '${output_file}' ${input_files}
 	"""
 }
+
+process combineFusionCalls {
+    tag "combine fusion calls"
+    publishDir "${params.out_dir}", mode: 'copy'
+
+    input:
+    path arriba_csv
+    path flexiplex_csv
+    path fuscia_csv
+
+    output:
+    path "combined_fusions.csv"
+
+    script:
+    """
+    combine_fusions.py \
+    	   --arriba $arriba_csv \
+  	   --flexiplex $flexiplex_csv \
+  	   --fuscia $fuscia_csv \
+  	   -o combined_fusions.csv
+  """
+}

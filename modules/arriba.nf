@@ -22,6 +22,9 @@ process runArriba {
 	"""
 }
 
+
+
+
 process getBarcodesArriba {
 	label 'process_tiny'
 	publishDir "${params.out_dir}/arriba_out", mode: 'copy'
@@ -57,3 +60,44 @@ process getBarcodesArriba {
 		"\$fusion_name".fastq
 	"""
 }
+
+process get_novel_fusions {
+    label 'process_tiny'
+    publishDir "${params.out_dir}/arriba_out", mode: 'copy'
+
+    input:
+    path("fusions.tsv")
+
+    output:
+    path("extra_target.csv")
+
+    script:
+    """
+    awk -F'\t' -v min_support=${params.min_arriba_support ?: 1} 'BEGIN { OFS="," }
+    NR==1 {
+        print "fusion genes","chrom1","base1","strand1","chrom2","base2","strand2","classification"
+        next
+    }
+    {
+        split(\$5, a, ":")
+        split(\$6, b, ":")
+        split(\$3, s1, "/")
+        split(\$4, s2, "/")
+
+        gene1 = \$1
+        gene2 = \$2
+
+        sub(/,.*/, "", gene1)
+        sub(/,.*/, "", gene2)
+
+	gsub(/\\(/, "-", gene1); gsub(/\\)/, "", gene1)
+	gsub(/\\(/, "-", gene2); gsub(/\\)/, "", gene2)
+
+        support = \$10 + \$11 + \$12
+        if (support < min_support) next
+
+        print gene1"--"gene2, a[1], a[2], s1[2], b[1], b[2], s2[2], \$15
+    }' fusions.tsv > extra_target.csv
+    """
+}
+
