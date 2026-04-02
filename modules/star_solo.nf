@@ -34,17 +34,15 @@ process runSTARSolo {
 	path(genome_index)
 	path(include_list)
 	val(umi_len)
+	val(protocol)
 
 	output:
 	path("Aligned.sortedByCoord.out.bam"), emit: bam
 	path("Aligned.sortedByCoord.out.bam.bai"), emit: bam_index
-	path("Solo.out/Gene/filtered/barcodes.tsv"), emit: barcodes
-	path("Solo.out/Gene/filtered/features.tsv"), emit: features
-	path("Solo.out/Gene/filtered/matrix.mtx"), emit: matrix
 
 	script:
-	"""
-	STAR \
+
+	STAR_args_common="STAR \
 		--runThreadN ${task.cpus} \
 		--genomeDir ${genome_index} \
 		--genomeLoad NoSharedMemory \
@@ -65,18 +63,35 @@ process runSTARSolo {
 		--chimScoreSeparation 1 \
 		--chimSegmentReadGapMax 3 \
 		--chimMultimapNmax 50 \
-		--soloType CB_UMI_Simple \
-		--soloCBwhitelist $include_list \
-		--soloUMIlen $umi_len \
-		--soloUMIdedup NoDedup \
 		--outSAMattributes NH HI nM AS CB UB \
-		--soloBarcodeReadLength 0
+		--soloUMIdedup NoDedup"
+
+	if(protocol=="10x-3prime-visiumHD"){
+	"""
+	   ${STAR_args_common} \
+      		--soloType CB_UMI_Complex \
+		--soloCBwhitelist $include_list $include_list \
+		--soloCBposition 0_10_0_23 1_-17_1_-4 \
+		--soloUMIposition 0_0_0_8 \
+		--soloCBmatchWLtype 1MM \
+		--soloBarcodeReadLength 0 \
+		--limitBAMsortRAM 149759137861 ;
 
 	samtools index Aligned.sortedByCoord.out.bam
 	"""
+	} else {
+	"""
+	   ${STAR_args_common} \
+		--soloType CB_UMI_Simple \
+		--soloCBwhitelist $include_list \
+		--soloUMIlen $umi_len
+
+	samtools index Aligned.sortedByCoord.out.bam
+	"""
+	}
 }
 
-process formatBAM {
+/** process formatBAM {
 	label 'process_tiny'
 	publishDir "${params.out_dir}/STARsolo"
 
@@ -89,4 +104,4 @@ process formatBAM {
 
 	samtools index Aligned.sortedByCoord.out_chr.bam
 	"""
-}
+} **/

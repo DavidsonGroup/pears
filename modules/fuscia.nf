@@ -19,6 +19,6 @@ process runFuscia {
 
 	"""
 	# Run the fuscia discovery command
-	fuscia_discover_chimeric_transcripts.py ${bam_file} ${gr1} ${gr2} . ${fusion_name} ${mapqual}
+	fuscia_discover_chimeric_transcripts.modified.py ${bam_file} ${gr1} ${gr2} . ${fusion_name} ${mapqual}
 	"""
 }

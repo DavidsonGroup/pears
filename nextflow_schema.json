@@ -42,6 +42,11 @@
 		    "minimum": 1,
 		    "description": "Minimum read support required before a new fusion is searched for. Only applicable when discover_fusions is true"
 		},
+		"arriba_exclusion_file": {
+		    "type": "string",
+		    "default": null,
+		    "description": "Arriba blacklist of fusions to filter out. File must be gzipped and full path provided."
+		},
 
             },
             "required": ["fastq_r1", "fastq_r2"]
@@ -122,14 +127,16 @@
                         "10x-3prime-v3",
                         "10x-3prime-v4",
                         "10x-5prime-v2",
-                        "10x-5prime-v3"
+                        "10x-5prime-v3",
+			"10x-3prime-visiumHD"
                     ],
                     "enumNames": [
                         "10x 3' Gene Expression v2 (UMI: 10bp, Barcodes: 737K-august-2016.txt.gz)",
                         "10x 3' Gene Expression v3/v3.1 (UMI: 12bp, Barcodes: 3M-february-2018.txt.gz)",
                         "10x 3' Gene Expression v4 (UMI: 12bp, Barcodes: 3M-3pgex-may-2023.txt.gz)",
                         "10x 5' Gene Expression v1/v2 (UMI: 10bp, Barcodes: 737K-august-2016.txt.gz)",
-                        "10x 5' Gene Expression v3 (UMI: 12bp, Barcodes: 3M-5pgex-jan-2023.txt.gz)"
+                        "10x 5' Gene Expression v3 (UMI: 12bp, Barcodes: 3M-5pgex-jan-2023.txt.gz)",
+			"10x 3' Visium HD - Gene Expression v3 (UMI: 9bp, Barcodes: visium-hd.txt.gz)"
                     ]
                 },
                 "umi_len": {

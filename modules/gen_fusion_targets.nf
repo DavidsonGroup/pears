@@ -27,7 +27,7 @@ process mergeFusionTargetLists {
     }
     else {
         cmd = """
-        echo "fusion genes,chrom1,base1,strand1,chrom2,base2,strand2,classification" > merged_known_fusions.csv
+        echo "fusion genes,chrom1,base1,strand1,chrom2,base2,strand2" > merged_known_fusions.csv
         """
     }
     cmd

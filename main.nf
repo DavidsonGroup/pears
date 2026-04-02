@@ -6,9 +6,9 @@ include { prepareIncludeList } from './modules/prepare_include_list.nf'
 include { calculateReadLength } from './modules/calculate_read_length.nf'
 include { buildSTARIndex; runSTARSolo } from './modules/star_solo.nf'
 include { runFuscia } from './modules/fuscia.nf'
-include { runFlexiplex } from './modules/flexiplex.nf'
+include { getFusionReadsFlexiplex; getBarcodesFlexiplex } from './modules/flexiplex.nf'
 include { formatFuscia; formatFlexiplex; formatArriba ; combineFusionCalls } from './modules/formatting.nf'
-include { runArriba ; getBarcodesArriba ; get_novel_fusions } from './modules/arriba.nf'
+include { runArriba ; getFusionReadsArriba; getBarcodesArriba ; get_novel_fusions } from './modules/arriba.nf'
 
 // Calculate barcode length from first line of barcode file (handles gzipped files)
 def getBarcodeLength(barcode_path) {
@@ -47,7 +47,9 @@ workflow {
 		'10x-3prime-v4': ['3M-3pgex-may-2023.txt.gz', 12],
 		// 5' Gene Expression chemistries
 		'10x-5prime-v2': ['737K-august-2016.txt.gz', 10],
-		'10x-5prime-v3': ['3M-5pgex-jan-2023.txt.gz', 12]
+		'10x-5prime-v3': ['3M-5pgex-jan-2023.txt.gz', 12],
+		//spatial
+		'10x-3prime-visiumHD': ['visium-hd.txt.gz', 9]
 	]
 
 	def umi_length = null
@@ -116,7 +118,8 @@ workflow {
 		channel.fromPath(params.fastq_r2).collect(),
 		star_index,
 		include_list,
-		umi_length
+		umi_length,
+		params.protocol
 	)
 
 	arriba_output = runArriba(star_solo_result.bam, ref_fasta, ref_gtf)
@@ -154,30 +157,39 @@ workflow {
 		}
 
 	fuscia_result = runFuscia(fusion_target_rows, star_solo_result.bam, star_solo_result.bam_index, params.fuscia_mapqual)
-	flexiplex_result = runFlexiplex(
+	flexiplex_reads = getFusionReadsFlexiplex(
 		fusion_target_rows,
-		include_list,
 		channel.fromPath(params.fastq_r1).collect(),
 		channel.fromPath(params.fastq_r2).collect(),
-		flexiplex_demultiplex_options
 	)
-	arriba_bc_output  = getBarcodesArriba(
-		fusion_target_rows,
+	flexiplex_result = getBarcodesFlexiplex(
+                                 flexiplex_reads,
+                                 include_list,
+                                 flexiplex_demultiplex_options,
+				 params.protocol
+        )
+
+	arriba_reads = getFusionReadsArriba(
+                fusion_target_rows,
 		arriba_output,
-		include_list,
-		channel.fromPath(params.fastq_r1).collect(),
-		flexiplex_demultiplex_options
+                channel.fromPath(params.fastq_r1).collect(),
+	)
+	arriba_result = getBarcodesArriba(
+                                 arriba_reads,
+                                 include_list,
+                                 flexiplex_demultiplex_options,
+                                 params.protocol
 	)
 
 	// collapse each into a single emission
 	fuscia_collected = fuscia_result | collect
 	flexiplex_collected = flexiplex_result | collect
-	arriba_bc_collected = arriba_bc_output | collect
+	arriba_collected = arriba_result | collect
 
 	// formatting
 	fuscia_final = formatFuscia(fuscia_collected, "fuscia_fusion_calls.csv")
 	flexiplex_final = formatFlexiplex(flexiplex_collected, "flexiplex_fusion_calls.csv")
-	arriba_final = formatArriba(arriba_bc_collected, "arriba_fusion_calls.csv")
+	arriba_final = formatArriba(arriba_collected, "arriba_fusion_calls.csv")
 
 	combineFusionCalls(arriba_final,flexiplex_final,fuscia_final)
 

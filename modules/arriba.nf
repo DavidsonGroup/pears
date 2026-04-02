@@ -1,5 +1,5 @@
 process runArriba {
-	label 'process_medium'
+	label 'process_high'
 	publishDir "${params.out_dir}/arriba_out", mode: 'copy'
 
 	input:
@@ -11,6 +11,9 @@ process runArriba {
 	path("fusions.tsv")
 
 	script:
+	arriba_exclusion_param="-f blacklist" //no filtering
+	if(params.arriba_exclusion_file)
+	    arriba_exclusion_param="-b ${params.arriba_exclusion_file}"
 	"""
 	arriba \
 		-x ${bam_file} \
@@ -18,26 +21,22 @@ process runArriba {
 		-O fusions.discarded.tsv \
 		-a ${ref_fasta} \
 		-g ${ref_gene} \
-		-f blacklist
+		${arriba_exclusion_param}
 	"""
 }
 
-
-
-
-process getBarcodesArriba {
-	label 'process_tiny'
+process getFusionReadsArriba {
+	label 'process_low'
 	publishDir "${params.out_dir}/arriba_out", mode: 'copy'
 
 	input:
 	tuple val(fusion_genes), val(chrom1), val(gene1), val(base1), val(sequence1), val(chrom2), val(gene2), val(base2), val(sequence2)
 	path(fusion_table)
-	path(include_list)
 	path(fastq_r1)
-	val(flexiplex_demultiplex_options)
 
 	output:
-	path("barcodes_${fusion_genes}_${chrom1}_${base1}_${chrom2}_${base2}_reads_barcodes.txt")
+	tuple val("${fusion_genes}_${chrom1}_${base1}_${chrom2}_${base2}"),
+          path("${fusion_genes}_${chrom1}_${base1}_${chrom2}_${base2}.fastq")
 
 	script:
 	"""
@@ -52,14 +51,51 @@ process getBarcodesArriba {
 		sed 's/,/ \\n/g' |\
 		sed 's/^/^@/g' |\
 		grep -f - <(gunzip -c ${fastq_r1}) -A3 --no-group-separator |\
-			sed "/^[@+]/! s/^/START/g" > "\$fusion_name".fastq ;
-
-	flexiplex -x START \
-		${flexiplex_demultiplex_options} \
-		-k ${include_list} -n barcodes_"\$fusion_name" \
-		"\$fusion_name".fastq
+			sed "/^[@+]/! s/^/%%%%%%%/g" > "\$fusion_name".fastq ;
 	"""
 }
+
+process getBarcodesArriba {
+	label 'process_low'
+	publishDir "${params.out_dir}/arriba_out", mode: 'copy'
+
+	input:
+	tuple val(fusion_name), path(reads)
+        path(include_list)
+        val(flexiplex_demultiplex_options)
+        val(protocol)
+
+        output:
+        path "barcodes_${fusion_name}_reads_barcodes.txt"
+
+        script:
+        FLEX="/vast/projects/lab_davidson/davidson.n/flexiplex/flexiplex"
+
+	if (protocol == "10x-3prime-visiumHD") {
+        """
+           cat ${reads} | ${FLEX} \
+               -x "%%%%%%%?????????G?????????????" \
+               -b "???????????????" \
+	       -k ${include_list} \
+               -e 1 -f 2 -r false | \
+               ${FLEX} \
+               -x "%%%%%%%" \
+               -u "?????????" \
+               -x "G" \
+	       -b "?????????????" \
+               -k ${include_list} \
+               -e 1 -f 2 -n barcodes_${fusion_name} ;
+        """
+        } else {
+
+        """
+          flexiplex -x %%%%%%% \
+                  ${flexiplex_demultiplex_options} \
+                  -k ${include_list} -n barcodes_${fusion_name} ${reads} ;
+        """
+       }
+}
+
 
 process get_novel_fusions {
     label 'process_tiny'
@@ -75,7 +111,7 @@ process get_novel_fusions {
     """
     awk -F'\t' -v min_support=${params.min_arriba_support ?: 1} 'BEGIN { OFS="," }
     NR==1 {
-        print "fusion genes","chrom1","base1","strand1","chrom2","base2","strand2","classification"
+        print "fusion genes","chrom1","base1","strand1","chrom2","base2","strand2"
         next
     }
     {
