@@ -1,9 +1,7 @@
 .nextflow*
 .DS_Store
-/work
-/modules/arriba
-/modules/fuscia
-/modules/flexiplex
-/modules/STAR
 CLAUDE.md
 .vscode/settings.json
+/assets/*.tsv.gz
+.conda/
+modules/temp*
