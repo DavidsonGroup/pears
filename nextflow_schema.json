@@ -225,6 +225,13 @@
                     "type": "string",
                     "description": "Override flexiplex demultiplex options. If set to null, options are auto-generated: -b \"?{barcode_length}\" (barcode length is dynamically determined from the barcode include-list file), -u \"<umi_pattern>\" (UMI length based on protocol or umi_len), -e 1 -f 0.",
                     "fa_icon": "fas fa-cog"
+                },
+                "visium_bin_size": {
+                    "type": "integer",
+                    "default": 8,
+                    "enum": [2, 8, 16],
+                    "description": "VisiumHD spatial bin size in microns. Converts BC1_BC2 barcodes to SpaceRanger format (e.g. s_008um_XXXXX_YYYYY-1). Only applied when protocol is 10x-3prime-visiumHD.",
+                    "fa_icon": "fas fa-th"
                 }
             }
         }

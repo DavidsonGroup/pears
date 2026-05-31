@@ -88,3 +88,24 @@ process combineFusionCalls {
   	   -o combined_fusions.csv
   """
 }
+process convertToSpatialBarcodes {
+    label 'process_tiny'
+    publishDir "${params.out_dir}", mode: 'copy'
+
+    input:
+    path combined_csv
+    path whitelist
+    val  bin_size
+
+    output:
+    path "combined_fusions_spatial.csv"
+
+    script:
+    """
+    convert_barcodes_spatial.py \
+        --input $combined_csv \
+        --whitelist $whitelist \
+        --bin-size $bin_size \
+        --output combined_fusions_spatial.csv
+    """
+}

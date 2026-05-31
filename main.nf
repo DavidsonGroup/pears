@@ -1,3 +1,21 @@
+def pears_banner() {
+    def GREEN = "[0;32m"
+    def BOLD  = "[1m"
+    def RESET = "[0m"
+    return """
+${BOLD}${GREEN}  🍐                                          🍐
+
+    ██████╗ ███████╗ █████╗ ██████╗ ███████╗
+    ██╔══██╗██╔════╝██╔══██╗██╔══██╗██╔════╝
+    ██████╔╝█████╗  ███████║██████╔╝███████╗
+    ██╔═══╝ ██╔══╝  ██╔══██║██╔══██╗╚════██║
+    ██║     ███████╗██║  ██║██║  ██║███████║
+    ╚═╝     ╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝
+
+  🍐                                          🍐${RESET}
+    """
+}
+
 nextflow.enable.dsl=2
 include { validateParameters; paramsSummaryLog } from 'plugin/nf-schema'
 include { downloadReferences } from './modules/download_references.nf'
@@ -7,7 +25,7 @@ include { calculateReadLength } from './modules/calculate_read_length.nf'
 include { buildSTARIndex; runSTARSolo } from './modules/star_solo.nf'
 include { runFuscia } from './modules/fuscia.nf'
 include { getFusionReadsFlexiplex; getBarcodesFlexiplex } from './modules/flexiplex.nf'
-include { formatFuscia; formatFlexiplex; formatArriba ; combineFusionCalls } from './modules/formatting.nf'
+include { formatFuscia; formatFlexiplex; formatArriba ; combineFusionCalls ; convertToSpatialBarcodes } from './modules/formatting.nf'
 include { runArriba ; getFusionReadsArriba; getBarcodesArriba ; get_novel_fusions } from './modules/arriba.nf'
 
 // Calculate barcode length from first line of barcode file (handles gzipped files)
@@ -34,6 +52,7 @@ def getBarcodeLength(barcode_path) {
 }
 
 workflow {
+	log.info pears_banner()
 	// Validate parameters against schema
 	validateParameters()
 	log.info paramsSummaryLog(workflow)
@@ -191,6 +210,10 @@ workflow {
 	flexiplex_final = formatFlexiplex(flexiplex_collected, "flexiplex_fusion_calls.csv", params.protocol)
 	arriba_final = formatArriba(arriba_collected, "arriba_fusion_calls.csv", params.protocol)
 
-	combineFusionCalls(arriba_final,flexiplex_final,fuscia_final)
+	combined = combineFusionCalls(arriba_final,flexiplex_final,fuscia_final)
+
+	if (params.protocol == "10x-3prime-visiumHD") {
+		convertToSpatialBarcodes(combined, include_list, params.visium_bin_size)
+	}
 
 }
