@@ -122,12 +122,12 @@ workflow {
 		params.protocol
 	)
 
-	arriba_output = runArriba(star_solo_result.bam, ref_fasta, ref_gtf)
+	arriba_output = runArriba(star_solo_result.arriba_bam, ref_fasta, ref_gtf)
 
 	final_target_list = params.known_fusions_list ? file(params.known_fusions_list) : null
 
 	if( discover_fusions ) {
-    	    extra_targets = get_novel_fusions(arriba_output)
+    	    extra_targets = get_novel_fusions(arriba_output,final_target_list)
     	    final_target_list = final_target_list ? mergeFusionTargetLists(final_target_list, extra_targets) : extra_targets
 	}
 	
@@ -188,8 +188,8 @@ workflow {
 
 	// formatting
 	fuscia_final = formatFuscia(fuscia_collected, "fuscia_fusion_calls.csv")
-	flexiplex_final = formatFlexiplex(flexiplex_collected, "flexiplex_fusion_calls.csv")
-	arriba_final = formatArriba(arriba_collected, "arriba_fusion_calls.csv")
+	flexiplex_final = formatFlexiplex(flexiplex_collected, "flexiplex_fusion_calls.csv", params.protocol)
+	arriba_final = formatArriba(arriba_collected, "arriba_fusion_calls.csv", params.protocol)
 
 	combineFusionCalls(arriba_final,flexiplex_final,fuscia_final)
 

@@ -46,14 +46,15 @@ process getFusionReadsArriba {
 	pos=`echo -e "${chrom1}:${base1}\t${chrom2}:${base2}"`
 	fusion_name=`echo ${fusion_genes}_${chrom1}_${base1}_${chrom2}_${base2}`
 
-	grep -e "\$fus" -e "\$pos" ${fusion_table} |\
+	grep -e "\$pos" ${fusion_table} |\
 		cut -f30 |\
-		sed 's/,/ \\n/g' |\
+		sed 's/,/\\n/g' |\
+		sed 's/\$/ /g' |\
 		sed 's/^/^@/g' |\
 		grep -f - <(gunzip -c ${fastq_r1}) -A3 --no-group-separator |\
 			sed "/^[@+]/! s/^/%%%%%%%/g" > "\$fusion_name".fastq ;
 	"""
-}
+} //grep -e "\$fus"
 
 process getBarcodesArriba {
 	label 'process_low'
@@ -69,16 +70,15 @@ process getBarcodesArriba {
         path "barcodes_${fusion_name}_reads_barcodes.txt"
 
         script:
-        FLEX="/vast/projects/lab_davidson/davidson.n/flexiplex/flexiplex"
 
 	if (protocol == "10x-3prime-visiumHD") {
         """
-           cat ${reads} | ${FLEX} \
+           cat ${reads} | flexiplex \
                -x "%%%%%%%?????????G?????????????" \
                -b "???????????????" \
 	       -k ${include_list} \
                -e 1 -f 2 -r false | \
-               ${FLEX} \
+               flexiplex \
                -x "%%%%%%%" \
                -u "?????????" \
                -x "G" \
@@ -103,37 +103,54 @@ process get_novel_fusions {
 
     input:
     path("fusions.tsv")
+    val known_list
 
     output:
     path("extra_target.csv")
 
     script:
     """
-    awk -F'\t' -v min_support=${params.min_arriba_support ?: 1} 'BEGIN { OFS="," }
-    NR==1 {
-        print "fusion genes","chrom1","base1","strand1","chrom2","base2","strand2"
-        next
+    echo ${known_list}
+    ls -l "${known_list}"
+    head ${known_list}
+
+    tail -n +2 ${known_list} | cut -d',' -f1 > allowlist.txt
+
+    awk -F'\t' -v min_support=${params.min_arriba_support ?: 1} '
+    BEGIN { OFS="," }
+
+    FNR==NR {
+    	    allow[\$1] = 1
+    	    next
     }
+
+    FNR==1 {
+    	   print "fusion genes","chrom1","base1","strand1","chrom2","base2","strand2","confidence"
+    	   next
+    }
+
     {
-        split(\$5, a, ":")
-        split(\$6, b, ":")
-        split(\$3, s1, "/")
-        split(\$4, s2, "/")
+	split(\$5, a, ":")
+    	split(\$6, b, ":")
+    	split(\$3, s1, "/")
+    	split(\$4, s2, "/")
 
-        gene1 = \$1
-        gene2 = \$2
+    	gene1 = \$1
+    	gene2 = \$2
 
-        sub(/,.*/, "", gene1)
-        sub(/,.*/, "", gene2)
+    	sub(/,.*/, "", gene1)
+    	sub(/,.*/, "", gene2)
 
-	gsub(/\\(/, "-", gene1); gsub(/\\)/, "", gene1)
-	gsub(/\\(/, "-", gene2); gsub(/\\)/, "", gene2)
+    	gsub(/\\(/, "-", gene1); gsub(/\\)/, "", gene1)
+    	gsub(/\\(/, "-", gene2); gsub(/\\)/, "", gene2)
 
-        support = \$10 + \$11 + \$12
-        if (support < min_support) next
+    	fusion = gene1 "--" gene2
+    	support = \$10 + \$11 + \$12
 
-        print gene1"--"gene2, a[1], a[2], s1[2], b[1], b[2], s2[2], \$15
-    }' fusions.tsv > extra_target.csv
-    """
+    	if (support < min_support && !(fusion in allow)) next
+
+    	print fusion, a[1], a[2], s1[2], b[1], b[2], s2[2], \$15
+	}' allowlist.txt fusions.tsv > extra_target.csv
+	"""
 }
 

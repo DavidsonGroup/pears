@@ -7,7 +7,7 @@ dependencies:
   - samtools=1.21
   - star=2.7.11b
   - arriba=2.5.1
-  - flexiplex=1.02.5
+  - flexiplex=1.02.6
   - pysam=0.23.3
   - pandas=2.2.3
   - pybedtools=0.12.0

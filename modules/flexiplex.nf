@@ -39,16 +39,15 @@ process getBarcodesFlexiplex {
 	path "barcodes_${fusion_name}_reads_barcodes.txt"
 
 	script:
-	FLEX="/vast/projects/lab_davidson/davidson.n/flexiplex/flexiplex"
 	
 	if (protocol == "10x-3prime-visiumHD") {
 	   """
-	   cat ${reads} | ${FLEX} \
+	   cat ${reads} | flexiplex \
                -x "%%%%%%%?????????G?????????????" \
                -b "???????????????" \
                -k ${include_list} \
                -e 1 -f 2 -r false | \
-    	       ${FLEX} \
+    	       flexiplex \
                -x "%%%%%%%" \
                -u "?????????" \
                -x "G" \
@@ -67,3 +66,4 @@ process getBarcodesFlexiplex {
 }
 
 
+//	FLEX="/vast/projects/lab_davidson/davidson.n/flexiplex/flexiplex"

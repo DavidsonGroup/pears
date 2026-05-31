@@ -58,11 +58,14 @@ def gene_range(shr_output, gene_dict, up, down):
     df = df[['fusion genes', 'chrom1', 'gene1', 'base1', 'sequence1', 'strand1', 'chrom2', 'gene2', 'base2', 'sequence2', 'strand2']]
     df = df[~df['fusion genes'].str.contains('MT-')]
 
+    ## adjust up and down distances when fusion partners are very close togther
+    close_genes = (df['chrom1'] == df['chrom2']) & ((df['base2'] - df['base1']).abs() < 200000) #fix magic numbers here!
+
     gene1 = []
     gene2 = []
     for index, row in df.iterrows():
         genes = row['fusion genes'].split("--")
-        if gene_dict[genes[0]] != []:
+        if gene_dict[genes[0]] != [] and not close_genes.loc[index] :
             if row['strand1'] == '+' :
                 gene1.append(gene_dict[genes[0]][1]) #start of gene 1
             else:
@@ -72,13 +75,13 @@ def gene_range(shr_output, gene_dict, up, down):
                 gene1.append(row['base1']-int(down))
             else:
                 gene1.append(row['base1']+int(up))
-        if gene_dict[genes[1]] != []:
-            if row['strand1'] == '+' :
+        if gene_dict[genes[1]] != [] and not close_genes.loc[index] :
+            if row['strand2'] == '+' :
                 gene2.append(gene_dict[genes[1]][2]) #end of gene 2
             else:
                 gene2.append(gene_dict[genes[1]][1]) #start of gene 2
         else:
-            if row['strand1'] == '+' :
+            if row['strand2'] == '+' :
                 gene2.append(row['base2']+int(up))
             else:
                 gene2.append(row['base2']-int(down))

@@ -44,11 +44,45 @@ def format_flexiplex_arriba(input_files):
     df = df.drop_duplicates()
     return df
 
+import os
+import pandas as pd
+
+
+def format_flexiplex_visium_hd(input_files):
+    """Format Flexiplex output files where the cell barcode is split across
+    the Read ID and the CellBarcode column.
+
+    Output columns:
+    cell_barcode, molecular_barcode, fusion
+    """
+
+    df = pd.DataFrame(columns=["cell_barcode", "molecular_barcode", "fusion"])
+
+    for file in input_files:
+        basename = os.path.basename(file)
+
+        if basename.startswith("barcodes"):
+            r = pd.read_table(file, dtype=str)
+
+            if not r.empty:
+                read_barcode = r["Read"].str.split("_", n=1).str[0]
+
+                df_temp = pd.DataFrame({
+                    "cell_barcode": read_barcode + "_" + r["CellBarcode"],
+                    "molecular_barcode": r["UMI"],
+                    "fusion": basename.split("_")[1]
+                })
+
+                df = pd.concat([df, df_temp], axis=0, ignore_index=True)
+
+    df = df.drop_duplicates()
+    return df
+
 
 def main():
     parser = argparse.ArgumentParser(description='Format barcode files from fusion detection tools')
     parser.add_argument('--type', '-t', required=True,
-                        choices=['fuscia', 'flexiplex', 'arriba'],
+                        choices=['fuscia', 'flexiplex', 'arriba','flexiplex_hd','arriba_hd'],
                         help='Type of input files to format')
     parser.add_argument('--output', '-o', required=True,
                         help='Output CSV file path')
@@ -61,6 +95,9 @@ def main():
         df = format_fuscia(args.input_files)
     elif args.type in ['flexiplex', 'arriba']:
         df = format_flexiplex_arriba(args.input_files)
+    elif args.type in ['flexiplex_hd', 'arriba_hd']:
+        df = format_flexiplex_visium_hd(args.input_files)
+        
     else:
         raise ValueError("Unsupported type. Use 'fuscia', 'flexiplex', or 'arriba'.")
 

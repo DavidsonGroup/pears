@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # Script to discover transcripts with reads mapping to different chromosomes from 10X single cell RNA-seq data
 # Usages: python discover_discordant_reads.py scRNA-seq.bam chrA:pos-pos chrB:pos-pos output_dir output_prefix min_mapq
 # Author: Steven Foltz (June 2019)
@@ -47,13 +48,40 @@ chrB_maxpos = int(chrB_range.split(":")[1].split("-")[1])
 chrA_reads = {}
 chrB_reads = {}
 
+offset=5 ## allow for a few extra bases at splice site
+
+# Output filename
+output_file_path = os.path.join(output_dir, output_prefix + ".discovered_discordant_reads.tsv")
+
 # iterate over chrA
 samfile = pysam.AlignmentFile(bam_filename, "rb")
+
+# Check whether the contigs exist in the BAM header
+bam_contigs = set(samfile.references)
+
+missing_contigs = [
+    contig for contig in [chrA, chrB]
+    if contig not in bam_contigs
+]
+
+## Check if contig IDs are valid
+if missing_contigs:
+    print(
+        "WARNING: skipping fusion because contig(s) not found in BAM header: "
+        + ", ".join(missing_contigs),
+        file=sys.stderr
+    )
+    with open(output_file_path, "w") as output:
+      output.write("\t".join(["cell_barcode", "molecular_barcode", "chrom", "start", "end"]) + "\n") # list of column headers
+      output.close()
+    samfile.close()
+    sys.exit(0)
+
 for read in samfile.fetch(chrA, chrA_minpos, chrA_maxpos):
   read_info = extract_read_info(read, min_mapq)
   if read_info == None:
     continue
-  if read.reference_start < chrA_minpos or read.reference_end > chrA_maxpos:
+  if read.reference_start < (chrA_minpos-offset) or read.reference_end > (chrA_maxpos+offset):
     continue
 
   CB = read_info["CB"] 
@@ -75,7 +103,7 @@ for read in samfile.fetch(chrB, chrB_minpos, chrB_maxpos):
   read_info = extract_read_info(read, min_mapq)
   if read_info == None:
     continue
-  if read.reference_start < chrB_minpos or read.reference_end > chrB_maxpos:
+  if read.reference_start < (chrB_minpos-offset) or read.reference_end > (chrB_maxpos+offset):
     continue
 
   CB = read_info["CB"]
@@ -140,7 +168,6 @@ for x in discordant_reads_list:
     unique_discordant_reads_list.append(x)
 
 os.makedirs(output_dir, exist_ok = True)
-output_file_path = os.path.join(output_dir, output_prefix + ".discovered_discordant_reads.tsv")
 output_file = open(output_file_path, "w")
 output_file.write("\t".join(["cell_barcode", "molecular_barcode", "chrom", "start", "end"]) + "\n") # list of column headers
 for dis_read in sorted(unique_discordant_reads_list):
