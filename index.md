@@ -32,7 +32,7 @@ git clone https://github.com/DavidsonGroup/pears.git
 Running locally:
 
 ```bash
-nextflow run DavidsonGroup/pears \
+nextflow run /path/to/pears \
   --fastq_r1 "/path/to/Reads_R1.fastq.gz" \
   --fastq_r2 "/path/to/Reads_R2.fastq.gz" \
   --known_fusions_list "known_fusions.csv" \
@@ -46,7 +46,7 @@ nextflow run DavidsonGroup/pears \
 Running on a SLURM cluster (recommended for large datasets):
 
 ```bash
-nextflow run DavidsonGroup/pears \
+nextflow run /path/to/pears \
   --fastq_r1 "/path/to/Reads_R1.fastq.gz" \
   --fastq_r2 "/path/to/Reads_R2.fastq.gz" \
   --known_fusions_list "known_fusions.csv" \
@@ -60,7 +60,7 @@ nextflow run DavidsonGroup/pears \
 Running on Visium HD spatial transcriptomics data:
 
 ```bash
-nextflow run DavidsonGroup/pears \
+nextflow run /path/to/pears \
   --fastq_r1 "/path/to/Reads_R1.fastq.gz" \
   --fastq_r2 "/path/to/Reads_R2.fastq.gz" \
   --known_fusions_list "known_fusions.csv" \
@@ -72,6 +72,8 @@ nextflow run DavidsonGroup/pears \
 ```
 
 The `-resume` flag allows you to continue from the last successful step if the pipeline is interrupted.
+
+> **Tip:** Nextflow also supports running directly from GitHub without cloning first: `nextflow run DavidsonGroup/pears [arguments]`.
 
 ## Protocol presets
 
@@ -98,6 +100,7 @@ The `-resume` flag allows you to continue from the last successful step if the p
 | `--out_dir` | `pears_output` | Output directory. |
 | `--discover_fusions` | `false` | Discover novel fusions via Arriba in addition to known fusions. |
 | `--min_arriba_support` | `20000` | Minimum reads for a novel Arriba fusion to be included. |
+| `--arriba_exclusion_file` | — | Path to a gzipped Arriba blacklist (`.tsv.gz`) to filter likely false positives. See [Arriba releases](https://github.com/suhrig/arriba/releases) for pre-built blacklists. |
 | `--visium_bin_size` | `8` | *(Visium HD only)* Bin size in microns (`2`, `8`, or `16`) for spatial barcode conversion. |
 | `--cpus` | `16` | CPUs per process. |
 | `--memory` | `128 GB` | Memory per process. |
