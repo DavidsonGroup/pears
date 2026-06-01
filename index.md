@@ -2,89 +2,148 @@
 layout: default
 ---
 
-# What is pears?
+# PEARS
 
+**P**ipeline for g**e**ne-fusion se**a**rching in **R**na **S**ingle-cell sequences
 
-# Installing pears
-1. `git clone https://github.com/DavidsonGroup/pears.git`
-2. make sure you have nextflow installed. See [docs](https://www.nextflow.io/docs/latest/getstarted.html).
-3. Specify your parameters in the nextflow.config file 
-4. run `nextflow run pears -c /path/to/nextflow.config` 
+PEARS is a Nextflow DSL2 pipeline that detects gene fusions at single-cell resolution from 10x scRNA-seq and Visium HD spatial transcriptomics data. It combines three complementary fusion-calling approaches — [FUSCIA](https://github.com/ding-lab/fuscia), [Flexiplex](https://github.com/DavidsonGroup/flexiplex), and [Arriba](https://github.com/suhrig/arriba) — and assigns cell barcodes to each detected fusion event, producing per-cell fusion calls.
 
+## Pipeline overview
 
-### Input
-Pears requires:
- - single-cell paired-end reads
- - known list of fusions
- - reference genome
+1. **Reference preparation** — Downloads genome FASTA and GTF annotation (or uses pre-built references).
+2. **Fusion target generation** — Builds search targets from a known fusions list using the reference annotation.
+3. **Alignment** — Aligns reads with STARsolo (chimeric-aware) and produces a BAM and single-cell count matrix.
+4. **Fusion detection** — Calls fusions using FUSCIA, Flexiplex, and Arriba in parallel.
+5. **Formatting** — Consolidates results into per-tool CSVs and a combined `combined_fusions.csv`. For Visium HD data, spatial bin barcodes are written to `combined_fusions_spatial.csv`.
 
-| input       | requirements      |
-|:-------------|:------------------|
-| Reads | named according to cellranger: [Sample Name]\_S1_L00[Lane Number]\_[Read Type]\_001.fastq.gz |
-| Cell barcode and Unique Molecular Barcode (UMI) | You will need to specify the length of the cell barcode and UMI in your data  |
+## Requirements
 
+- [Nextflow](https://www.nextflow.io/) (>= 22.10)
+- [Conda](https://docs.conda.io/) (environments are built automatically)
 
-Your known list of fusions should contain:
- - name of gene fusion
- - for both genes: chromosome, base location of breakpoint, strand sense
-You may also need to change the delimiter between genes (i.e. "--" for fusions formatted as such "BCAS4--BCAS3"). The default delimiter is ":".
+## Installation
 
-pears runs STARsolo to align single-cell reads to a reference genome generating alignment and index files. If you have already have both, you can skip the alignment step in the config file. You should place your alignment files in a directory with the path `your_out_dir/STAR/`. 
+```bash
+git clone https://github.com/DavidsonGroup/pears.git
+```
 
-Similarly, if you would like to use individual sections of pears you may select/deselect tools. See more details. **hyperlink to another section**
+## Usage
 
-#### Adjustable Parameters
-The adjustable parameters for pears includes:
- - fuscia_mapqual
- - fuscia_up/fuscia_down
- - flexi_searchlen 
+Running locally:
 
-| parameters     | requirements    |
-|:-------------|:------------------|
-| fuscia_mapqual | the `map_qual` parameter used by fuscia, this will determine the minimum acceptable MAPQ quality of reads fuscia will look for |
-| fuscia_up/fuscia_down | if there is no corresponding gene annotation in the reference gene.gtf file, you can specify a range (in bp) upstream/downstream of the fusion breakpoint |
-| flexiplex_searchlen | 2x the length of sequence (bp) flexiplex will use to search for the fusion sequence. Please note, the longer the search length the longer flexiplex will take to run. See [Davidson et al.](https://github.com/DavidsonGroup/flexiplex) |
+```bash
+nextflow run DavidsonGroup/pears \
+  --fastq_r1 "/path/to/Reads_R1.fastq.gz" \
+  --fastq_r2 "/path/to/Reads_R2.fastq.gz" \
+  --known_fusions_list "known_fusions.csv" \
+  --protocol "10x-3prime-v3" \
+  --genome_version "GRCh38+GENCODE44" \
+  --out_dir "pears_output" \
+  -profile "local" \
+  -resume
+```
 
-### Arriba
-[Link to Arriba](https://github.com/suhrig/arriba)
-### Flexiplex
-[Link to Flexiplex](https://github.com/DavidsonGroup/flexiplex)
-### Fuscia
-[Link to Fuscia](https://github.com/ding-lab/fuscia)
-### Output
+Running on a SLURM cluster (recommended for large datasets):
 
-# Modules and Requirements
-Pears includes three modules: alignment, fuscia and flexiplex. You may choose to use any combination of the three, however some may have dependencies.
+```bash
+nextflow run DavidsonGroup/pears \
+  --fastq_r1 "/path/to/Reads_R1.fastq.gz" \
+  --fastq_r2 "/path/to/Reads_R2.fastq.gz" \
+  --known_fusions_list "known_fusions.csv" \
+  --protocol "10x-3prime-v3" \
+  --genome_version "GRCh38+GENCODE44" \
+  --out_dir "pears_output" \
+  -profile "slurm" \
+  -resume
+```
 
-| module       | requirements      |
-|:-------------|:------------------|
-| STAR   | reads (randomised*), reference  |
-| Arriba | reads, `.bam` and `.bam.bai` files | 
-| fuscia       | reads, list of known fusions (fusion names, chrX:start-end for both genes), `.bam` and `.bam.bai` files |
-| flexiplex    | reads, list of known fusions (fusion names, cell barcode and UMI length, sequence around the fusion breakpoint)  |
+Running on Visium HD spatial transcriptomics data:
 
-If your reads are already sorted by coordinate, please randomise before alignmented see [issue](https://github.com/alexdobin/STAR/issues/348).
+```bash
+nextflow run DavidsonGroup/pears \
+  --fastq_r1 "/path/to/Reads_R1.fastq.gz" \
+  --fastq_r2 "/path/to/Reads_R2.fastq.gz" \
+  --known_fusions_list "known_fusions.csv" \
+  --protocol "10x-3prime-visiumHD" \
+  --genome_version "GRCh38+GENCODE44" \
+  --out_dir "pears_output" \
+  -profile "slurm" \
+  -resume
+```
 
-Pears also contains additional scripts to help format and streamline between processes.
+The `-resume` flag allows you to continue from the last successful step if the pipeline is interrupted.
 
-`gen_masterdata` creates the main file fuscia and flexiplex will drawn from. It will output a dataframe with the columns:
- - fusion name
- - chromosome
- - start of the gene (gene1) to site of breakpoint (base1) or site of breakpoint (base2) to end of gene (gene2)
- - strand sense
- - two sequence +/- n bases around the breakpoint
-The header of the file includes: `fusion_name | chrom1 | gene1 | base1 | sequence1 | strand1 | chrom2 | gene2 | base2 | sequence2 | strand2 `
+## Protocol presets
 
-Fuscia will create files that include: `cell_barcode | molecular_barcode | chrom | start | end `.
+`--protocol` sets the barcode whitelist and UMI length for the given 10x chemistry.
 
-Flexiplex will create files that include: `Read | Cell_barcode | FlankEditDist | BarcodeEditDist | UMI `. 
+| Preset | Chemistry | UMI length |
+|---|---|---|
+| `10x-3prime-v2` | 3' Gene Expression v2 | 10 bp |
+| `10x-3prime-v3` | 3' Gene Expression v3/v3.1 | 12 bp |
+| `10x-3prime-v4` | 3' Gene Expression v4 | 12 bp |
+| `10x-5prime-v2` | 5' Gene Expression v1/v2 | 10 bp |
+| `10x-5prime-v3` | 5' Gene Expression v3 | 12 bp |
+| `10x-3prime-visiumHD` | Visium HD spatial transcriptomics | 9 bp |
 
-`format_fuscia` and `format_flexiplex` function to collate the `.txt` files flexiplex and fuscia output.
+## Key arguments
 
-`gen_report` creates the main report file **that is already classified **
+| Argument | Default | Description |
+|---|---|---|
+| `--fastq_r1` | — | Path to Read 1 FASTQ file(s) (gzipped). |
+| `--fastq_r2` | — | Path to Read 2 FASTQ file(s) (gzipped). |
+| `--known_fusions_list` | — | CSV of known/candidate fusions to search for. |
+| `--protocol` | — | 10x chemistry preset (see table above). |
+| `--genome_version` | `GRCh38+GENCODE44` | Reference genome to download. |
+| `--out_dir` | `pears_output` | Output directory. |
+| `--discover_fusions` | `false` | Discover novel fusions via Arriba in addition to known fusions. |
+| `--min_arriba_support` | `20000` | Minimum reads for a novel Arriba fusion to be included. |
+| `--visium_bin_size` | `8` | *(Visium HD only)* Bin size in microns (`2`, `8`, or `16`) for spatial barcode conversion. |
+| `--cpus` | `16` | CPUs per process. |
+| `--memory` | `128 GB` | Memory per process. |
+| `--time` | `48h` | Wall-time limit per process. |
+| `-profile` | — | `local` or `slurm`. |
 
+For the full argument reference see the [README](https://github.com/DavidsonGroup/pears/blob/main/README.md).
 
+## Known fusions list format
 
+The `--known_fusions_list` input is a CSV with the following columns:
 
+| Column | Description |
+|---|---|
+| `fusion genes` | Fusion pair separated by `--` (e.g. `BCAS4--BCAS3`). |
+| `chrom1` | Chromosome of gene 1. |
+| `base1` | Breakpoint position of gene 1. |
+| `strand1` | Strand of gene 1 (`+` or `-`). |
+| `chrom2` | Chromosome of gene 2. |
+| `base2` | Breakpoint position of gene 2. |
+| `strand2` | Strand of gene 2 (`+` or `-`). |
 
+This format is compatible with [JAFFA](https://github.com/Oshlack/JAFFA) output. Additional columns are ignored.
 
+```
+fusion genes,chrom1,base1,strand1,chrom2,base2,strand2,classification
+BCAS4--BCAS3,chr20,50795173,+,chr17,61368327,+,HighConfidence
+RPS6KB1--VMP1,chr17,59914703,+,chr17,59839768,+,HighConfidence
+```
+
+## Output
+
+Results are written to `--out_dir`:
+
+| File | Description |
+|---|---|
+| `combined_fusions.csv` | All tools merged: UMI counts per tool and total per (fusion, cell) pair. |
+| `combined_fusions_spatial.csv` | *(Visium HD only)* Combined fusions with SpaceRanger-format spatial barcodes (e.g. `s_008um_00241_00258-1`). |
+| `fuscia_fusion_calls.csv` | Per-cell fusion calls from FUSCIA. |
+| `flexiplex_fusion_calls.csv` | Per-cell fusion calls from Flexiplex. |
+| `arriba_fusion_calls.csv` | Per-cell fusion calls from Arriba. |
+| `STARsolo/` | BAM alignment and single-cell count matrix. |
+| `arriba_out/` | Arriba fusion table and per-fusion barcode files. |
+| `fusion_targets.csv` | Generated fusion target sequences. |
+| `nextflow_report.html` | Nextflow execution report. |
+
+## Credits
+
+Adapted from [FUSCIA](https://github.com/ding-lab/fuscia) (Steven Foltz, 2019) and [Flexiplex](https://github.com/DavidsonGroup/flexiplex) (Davidson et al., 2022).
