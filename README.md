@@ -19,10 +19,12 @@ PEARS is a Nextflow DSL2 pipeline that detects gene fusions at single-cell resol
 
 ## Usage
 
+After cloning the repository, use the path to the local directory:
+
 Running locally:
 
 ```bash
-nextflow run DavidsonLab/pears \
+nextflow run /path/to/pears \
   --fastq_r1 "/path/to/Reads_R1.fastq.gz" \
   --fastq_r2 "/path/to/Reads_R2.fastq.gz" \
   --known_fusions_list "known_fusions.csv" \
@@ -35,7 +37,7 @@ nextflow run DavidsonLab/pears \
 Running on SLURM cluster:
 
 ```bash
-nextflow run DavidsonLab/pears \
+nextflow run /path/to/pears \
   --fastq_r1 "/path/to/Reads_R1.fastq.gz" \
   --fastq_r2 "/path/to/Reads_R2.fastq.gz" \
   --known_fusions_list "known_fusions.csv" \
@@ -46,6 +48,9 @@ nextflow run DavidsonLab/pears \
 ```
 
 Running on SLURM will be much faster due to parallelization of the fusion detection step. The `-resume` flag allows you to continue from the last successful step if the pipeline is interrupted.
+
+> [!TIP]
+> Nextflow also supports running directly from GitHub without cloning first: `nextflow run DavidsonGroup/pears [arguments]`. This always fetches the latest version from the `main` branch.
 
 ## Reusing references
 
@@ -106,6 +111,7 @@ By default, the pipeline downloads the genome specified by `--genome_version` an
 |---|---|---|
 | `--discover_fusions` | `false` | Search for novel fusions in addition to those in `--known_fusions_list`. Uses Arriba to discover candidates automatically. If no `--known_fusions_list` is provided, discovery is enabled automatically. |
 | `--min_arriba_support` | `20000` | Minimum number of supporting reads required for a novel fusion discovered by Arriba to be included. Lower values find more candidates but increase runtime. |
+| `--arriba_exclusion_file` | — | Path to a gzipped Arriba blacklist file (`.tsv.gz`) used to filter out likely false-positive fusions. Bundled blacklists for common genomes are available from the [Arriba releases page](https://github.com/suhrig/arriba/releases). If not set, no blacklist filtering is applied. |
 
 ### Tool parameters
 
