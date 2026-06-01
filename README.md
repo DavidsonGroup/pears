@@ -10,7 +10,7 @@ PEARS is a Nextflow DSL2 pipeline that detects gene fusions at single-cell resol
 2. **Fusion target generation** — Builds search targets from a known fusions list using the reference annotation.
 3. **Alignment** — Aligns reads with STARsolo (chimeric-aware) and produces a BAM and single-cell count matrix.
 4. **Fusion detection** - Calls fusions using [FUSCIA](https://github.com/ding-lab/fuscia), [Flexiplex](https://github.com/DavidsonGroup/flexiplex), and [Arriba](https://github.com/suhrig/arriba) in parallel.
-5. **Formatting** — Consolidates results into three CSV files of per-cell fusion calls (`fuscia_fusion_calls.csv`, `flexiplex_fusion_calls.csv`, `arriba_fusion_calls.csv`).
+5. **Formatting** — Consolidates results into per-cell fusion call CSVs per tool, and a `combined_fusions.csv` merging all three. For Visium HD data, spatial bin barcodes are also written to `combined_fusions_spatial.csv`.
 
 ## Requirements
 
@@ -79,6 +79,7 @@ See [Pre-built or reusing reference overrides](#pre-built-or-reusing-reference-o
 | `10x-3prime-v4` | 3' Gene Expression v4 | 12 bp | 3M-3pgex-may-2023 |
 | `10x-5prime-v2` | 5' Gene Expression v1/v2 | 10 bp | 737K-august-2016 |
 | `10x-5prime-v3` | 5' Gene Expression v3 | 12 bp | 3M-5pgex-jan-2023 |
+| `10x-3prime-visiumHD` | Visium HD spatial transcriptomics | 9 bp | visium-hd |
 
 ### Read structure overrides
 
@@ -99,6 +100,13 @@ By default, the pipeline downloads the genome specified by `--genome_version` an
 | `--ref_gtf` | *downloaded* | GTF annotation. Must be provided together with `--ref_fasta` and `--star_genome_index`. |
 | `--star_genome_index` | *built from download* | STAR genome index directory. Must be provided together with `--ref_fasta` and `--ref_gtf`. |
 
+### Fusion discovery
+
+| Argument | Default | Description |
+|---|---|---|
+| `--discover_fusions` | `false` | Search for novel fusions in addition to those in `--known_fusions_list`. Uses Arriba to discover candidates automatically. If no `--known_fusions_list` is provided, discovery is enabled automatically. |
+| `--min_arriba_support` | `20000` | Minimum number of supporting reads required for a novel fusion discovered by Arriba to be included. Lower values find more candidates but increase runtime. |
+
 ### Tool parameters
 
 | Argument | Default | Description |
@@ -108,6 +116,15 @@ By default, the pipeline downloads the genome specified by `--genome_version` an
 | `--fuscia_mapqual` | `30` | Minimum mapping quality for FUSCIA read extraction. |
 | `--fuscia_up` | `1000` | Upstream search distance (bp) when no gene annotation is available. |
 | `--fuscia_down` | `1000` | Downstream search distance (bp) when no gene annotation is available. |
+| `--visium_bin_size` | `8` | *(Visium HD only)* Bin size in microns for spatial barcode conversion. Must be `2`, `8`, or `16`. Converts the two-part Visium HD barcode to standard SpaceRanger format (e.g. `s_008um_00241_00258-1`) in `combined_fusions_spatial.csv`. |
+
+### Resource parameters
+
+| Argument | Default | Description |
+|---|---|---|
+| `--cpus` | `16` | Number of CPUs to allocate per process. |
+| `--memory` | `128 GB` | Memory to allocate per process. |
+| `--time` | `48h` | Wall-time limit per process (e.g. `24h`, `2d12h`). |
 
 ## Known fusions list format
 
@@ -140,6 +157,8 @@ Results are written to `--out_dir` (default `pears_output/`):
 
 | File/Directory | Description |
 |---|---|
+| `combined_fusions.csv` | All three tools merged into a single file, with UMI counts per tool and in total (see [Combined fusions format](#combined-fusions-csv-format)). |
+| `combined_fusions_spatial.csv` | *(Visium HD only)* `combined_fusions.csv` with cell barcodes converted to SpaceRanger spatial bin format (e.g. `s_008um_00241_00258-1`). |
 | `fuscia_fusion_calls.csv` | Per-cell fusion calls from FUSCIA. |
 | `flexiplex_fusion_calls.csv` | Per-cell fusion calls from Flexiplex. |
 | `arriba_fusion_calls.csv` | Per-cell fusion calls from Arriba. |
@@ -151,9 +170,9 @@ Results are written to `--out_dir` (default `pears_output/`):
 | `nextflow_report.html` | Nextflow execution report. |
 | `nextflow_trace.txt` | Nextflow process trace log. |
 
-### Fusion calls CSV format
+### Per-tool fusion calls CSV format
 
-The three fusion calls CSVs (`fuscia_fusion_calls.csv`, `flexiplex_fusion_calls.csv`, `arriba_fusion_calls.csv`) share the same format:
+The three per-tool CSVs (`fuscia_fusion_calls.csv`, `flexiplex_fusion_calls.csv`, `arriba_fusion_calls.csv`) share the same format:
 
 | Column | Description |
 |---|---|
@@ -170,7 +189,30 @@ CAGGGCTCACTTGGGC,TGATAGGAATCG,JPH1--NCOA2
 GTGTGGCGTGGCCCAT,GGTAATCAGCAA,KIAA1429--RP11-586K2.1
 ```
 
-Each row represents one unique observation of a fusion transcript in a specific cell. Rows are deduplicated — each (cell_barcode, molecular_barcode, fusion) triple appears at most once. Multiple rows with different cell barcodes for the same fusion indicate independent cells harbouring that fusion. Multiple rows with the same cell barcode but different UMIs for the same fusion indicate multiple distinct fusion transcript molecules captured in that cell, providing stronger evidence. Fusions detected by more than one tool in the same cell are higher confidence and can be identified by cross-referencing the three CSVs.
+Each row represents one unique observation of a fusion transcript in a specific cell. Rows are deduplicated — each (cell_barcode, molecular_barcode, fusion) triple appears at most once. Multiple rows with different cell barcodes for the same fusion indicate independent cells harbouring that fusion. Multiple rows with the same cell barcode but different UMIs for the same fusion indicate multiple distinct fusion transcript molecules captured in that cell, providing stronger evidence. Fusions detected by more than one tool in the same cell are higher confidence and can be identified by cross-referencing the three CSVs, or by using `combined_fusions.csv` directly.
+
+### Combined fusions CSV format
+
+`combined_fusions.csv` merges calls from all three tools into a single file, aggregating UMI counts per (fusion, cell) pair:
+
+| Column | Description |
+|---|---|
+| `fusion` | Detected gene fusion, formatted as `GENE1--GENE2`. |
+| `cell_barcode` | 10x cell barcode identifying the single cell. |
+| `total_umis` | Total unique UMIs supporting this fusion in this cell across all tools. |
+| `arriba_umis` | UMIs from Arriba only. |
+| `flexiplex_umis` | UMIs from Flexiplex only. |
+| `fuscia_umis` | UMIs from FUSCIA only. |
+
+Example:
+
+```
+fusion,cell_barcode,total_umis,arriba_umis,flexiplex_umis,fuscia_umis
+BCAS4--BCAS3,CCACAAAAGGTTCTTG,3,1,2,1
+BCAS4--BCAS3,CAGGGCTCACTTGGGC,1,0,1,0
+```
+
+Cells with support from multiple tools (non-zero values in multiple `*_umis` columns) represent the highest-confidence fusion calls.
 
 ## Credits
 
