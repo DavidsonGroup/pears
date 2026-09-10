@@ -38,7 +38,7 @@ process getFusionReadsArriba {
 
 	output:
 	tuple val("${fusion_genes}_${chrom1}_${base1}_${chrom2}_${base2}"),
-          path("${fusion_genes}_${chrom1}_${base1}_${chrom2}_${base2}_read_ids.txt")
+          path("${fusion_genes}_${chrom1}_${base1}_${chrom2}_${base2}_arriba_read_ids.txt")
 
 	script:
 	"""
@@ -52,9 +52,9 @@ process getFusionReadsArriba {
 		sed 's/,/\\n/g' |\
 		sed 's/[[:space:]]*\$//' |\
 		sort -u |\
-		grep -v '^\$' > "\$fusion_name"_read_ids.txt
+		grep -v '^\$' > "\$fusion_name"_arriba_read_ids.txt
 
-	touch "\$fusion_name"_read_ids.txt
+	touch "\$fusion_name"_arriba_read_ids.txt
 	"""
 }
 

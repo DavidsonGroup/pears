@@ -24,7 +24,7 @@ include { genFusionTargets ; mergeFusionTargetLists } from './modules/gen_fusion
 include { prepareIncludeList } from './modules/prepare_include_list.nf'
 include { calculateReadLength } from './modules/calculate_read_length.nf'
 include { buildSTARIndex; runSTAR } from './modules/star.nf'
-include { discoverBarcodes; demultiplexReads; demultiplexReadsVisiumHD; transferBarcodesToBAM } from './modules/demultiplex.nf'
+include { discoverBarcodes; buildBarcodeList; demultiplexReadsDirect; collectTargetReadIDs; extractTargetReads; demultiplexReads; demultiplexReadsVisiumHD; transferBarcodesToBAM } from './modules/demultiplex.nf'
 include { runFuscia } from './modules/fuscia.nf'
 include { getFusionReadsFlexiplex; getBarcodesFlexiplex } from './modules/flexiplex.nf'
 include { formatFuscia; formatFlexiplex; formatArriba ; combineFusionCalls ; convertToSpatialBarcodes } from './modules/formatting.nf'
@@ -102,6 +102,11 @@ workflow {
 	flexiplex_demultiplex_options = params.flexiplex_demultiplex_options ?: default_flexiplex_opts
 	log.info "Flexiplex demultiplex options: ${flexiplex_demultiplex_options} (barcode_len=${barcode_length}, umi_len=${umi_length})"
 
+	// Tagging every read needs a barcode for every read
+	if (params.tag_full_bam && !params.demultiplex_all_reads) {
+		error "--tag_full_bam requires --demultiplex_all_reads, which demultiplexes the whole library (slow: flexiplex compares every read that does not match the barcode list exactly against the entire list)"
+	}
+
 	// Use pre-built references if all three are provided, otherwise download
 	if (params.ref_fasta && params.ref_gtf && params.star_genome_index) {
 		log.info "Using pre-built references: skipping download and index building"
@@ -136,29 +141,6 @@ workflow {
 			ref_gtf,
 			read_length
 		)
-	}
-
-	// Demultiplex every read from R1 before alignment. The resulting table is
-	// the single source of barcodes for fuscia, arriba and flexiplex.
-	if (params.protocol == "10x-3prime-visiumHD") {
-		barcode_table = demultiplexReadsVisiumHD(read1_files(), include_list).first()
-	} else {
-		if (params.barcode_list) {
-			barcode_list = channel.value(file(params.barcode_list))
-			log.info "Using supplied barcode list: ${params.barcode_list}"
-		} else {
-			barcode_list = discoverBarcodes(
-				read1_files(),
-				include_list,
-				flexiplex_demultiplex_options
-			).barcode_list
-		}
-
-		barcode_table = demultiplexReads(
-			read1_files(),
-			barcode_list,
-			flexiplex_demultiplex_options
-		).first()
 	}
 
 	// Align the cDNA read (R2); barcodes come from the demultiplexing table
@@ -202,6 +184,80 @@ workflow {
 			)
 		}
 
+	// The read ID lists for every fusion are gathered so that the barcode
+	// table is scanned once rather than once per fusion
+	flexiplex_reads = getFusionReadsFlexiplex(
+		fusion_target_rows,
+		read2_files()
+	).read_ids \
+		| map { fusion_name, read_ids -> read_ids } \
+		| collect
+
+	arriba_reads = getFusionReadsArriba(
+                fusion_target_rows,
+		arriba_output
+	) \
+		| map { fusion_name, read_ids -> read_ids } \
+		| collect
+
+	// Demultiplex. Only the reads that need a barcode are handed to flexiplex:
+	// the reads over the fusion targets in the BAM, which is what fuscia
+	// inspects, plus the fusion-supporting reads arriba and flexiplex found.
+	// Everything downstream of this point is unchanged by the restriction,
+	// and --demultiplex_all_reads runs the whole library instead.
+	if (params.demultiplex_all_reads) {
+		demultiplex_input = read1_files()
+	} else {
+		target_read_ids = collectTargetReadIDs(
+			star_result.bam,
+			star_result.bam_index,
+			fusion_targets,
+			flexiplex_reads.mix(arriba_reads).collect()
+		)
+		demultiplex_input = extractTargetReads(read1_files(), target_read_ids)
+	}
+
+	// Assign the barcodes. The read subset is demultiplexed directly, against
+	// candidates taken from the reads themselves. VisiumHD uses flexiplex,
+	// whose two-stage search handles the split spot barcode, and so does the
+	// whole library, where the barcodes have to be ranked over every read.
+	if (params.protocol == "10x-3prime-visiumHD") {
+		barcode_table = demultiplexReadsVisiumHD(demultiplex_input, include_list).first()
+	} else if (params.demultiplexer == "direct" && !params.demultiplex_all_reads) {
+		barcode_table = demultiplexReadsDirect(
+			demultiplex_input,
+			params.barcode_list ? channel.value(file(params.barcode_list)) : include_list,
+			barcode_length,
+			umi_length
+		).first()
+	} else {
+		if (params.demultiplexer == "direct") {
+			log.info "Demultiplexing the whole library: using flexiplex rather than --demultiplexer direct"
+		}
+		if (params.barcode_list) {
+			barcode_list = channel.value(file(params.barcode_list))
+			log.info "Using supplied barcode list: ${params.barcode_list}"
+		} else if (params.demultiplex_all_reads) {
+			barcode_list = discoverBarcodes(
+				read1_files(),
+				include_list,
+				flexiplex_demultiplex_options
+			).barcode_list
+		} else {
+			barcode_list = buildBarcodeList(
+				demultiplex_input,
+				include_list,
+				barcode_length
+			)
+		}
+
+		barcode_table = demultiplexReads(
+			demultiplex_input,
+			barcode_list,
+			flexiplex_demultiplex_options
+		).first()
+	}
+
 	// Write the demultiplexed barcodes onto the BAM as CB/UB tags for fuscia.
 	// Taking fusion_targets as input keeps this downstream of arriba: with
 	// discover_fusions the target list is not complete until get_novel_fusions
@@ -216,25 +272,11 @@ workflow {
 
 	fuscia_result = runFuscia(fusion_target_rows, tagged_bam.bam, tagged_bam.bam_index, params.fuscia_mapqual)
 
-	// The read ID lists for every fusion are gathered so that the barcode
-	// table - which is large - is scanned once rather than once per fusion
-	flexiplex_reads = getFusionReadsFlexiplex(
-		fusion_target_rows,
-		read2_files()
-	).read_ids \
-		| map { fusion_name, read_ids -> read_ids } \
-		| collect
 	flexiplex_result = getBarcodesFlexiplex(
                                  flexiplex_reads,
                                  barcode_table
         )
 
-	arriba_reads = getFusionReadsArriba(
-                fusion_target_rows,
-		arriba_output
-	) \
-		| map { fusion_name, read_ids -> read_ids } \
-		| collect
 	arriba_result = getBarcodesArriba(
                                  arriba_reads,
                                  barcode_table

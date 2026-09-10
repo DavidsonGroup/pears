@@ -225,11 +225,25 @@
                     "description": "Override flexiplex demultiplex options. If set to null, options are auto-generated: -b \"?{barcode_length}\" (barcode length is dynamically determined from the barcode include-list file), -u \"<umi_pattern>\" (UMI length based on protocol or umi_len), -e 1 -f 0.",
                     "fa_icon": "fas fa-cog"
                 },
+                "demultiplexer": {
+                    "type": "string",
+                    "default": "direct",
+                    "enum": ["direct", "flexiplex"],
+                    "description": "How barcodes are assigned to the reads. 'direct' reads the barcode and UMI at their fixed offset and corrects against candidates taken from the reads, resolving ambiguous corrections by candidate abundance and base quality. 'flexiplex' hands the barcode list to flexiplex instead. VisiumHD and demultiplex_all_reads always use flexiplex.",
+                    "fa_icon": "fas fa-random"
+                },
+                "barcode_list_edit_distance": {
+                    "type": "integer",
+                    "default": 1,
+                    "enum": [0, 1],
+                    "description": "How the barcode list is built from the reads being demultiplexed. 1 (default) keeps the observed barcodes that are in the whitelist plus the whitelist barcodes one error away from an observed barcode that is not, which matches what demultiplexing against the whole whitelist would give. 0 keeps only exact whitelist hits, which drops reads carrying a sequencing error in the barcode.",
+                    "fa_icon": "fas fa-crosshairs"
+                },
                 "barcode_discovery_top_n": {
                     "type": "integer",
                     "default": 50000,
                     "minimum": 1,
-                    "description": "Number of the most abundant observed barcodes kept from the flexiplex discovery pass before intersecting with the whitelist. Not used for VisiumHD or when barcode_list is given.",
+                    "description": "Only used with demultiplex_all_reads: the number of the most abundant observed barcodes kept from the flexiplex discovery pass before intersecting with the whitelist.",
                     "fa_icon": "fas fa-sort-amount-down"
                 },
                 "barcode_list": {
@@ -237,6 +251,12 @@
                     "format": "file-path",
                     "description": "Barcode list to demultiplex against (one barcode per line, e.g. a list of called cells). Skips the flexiplex barcode discovery pass.",
                     "fa_icon": "fas fa-list-ol"
+                },
+                "demultiplex_all_reads": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Demultiplex every read in the library rather than only the reads needed for fusion calling (reads over the fusion targets plus the fusion-supporting reads). Much slower: flexiplex compares every read that does not exactly match the barcode list against the entire list. Required by tag_full_bam.",
+                    "fa_icon": "fas fa-layer-group"
                 },
                 "tag_full_bam": {
                     "type": "boolean",

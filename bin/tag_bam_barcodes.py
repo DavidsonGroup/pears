@@ -95,9 +95,13 @@ def main():
         description="Write CB/UB tags onto a BAM from a flexiplex barcode table."
     )
     parser.add_argument("--bam", required=True, help="Input (indexed) BAM file.")
-    parser.add_argument("--barcodes", required=True,
-                        help="Pipeline-wide flexiplex reads_barcodes.txt table.")
-    parser.add_argument("--output", required=True, help="Output BAM file.")
+    parser.add_argument("--barcodes",
+                        help="Flexiplex reads_barcodes.txt table.")
+    parser.add_argument("--output", help="Output BAM file.")
+    parser.add_argument("--names-out", dest="names_out",
+                        help="Write the read names over the target regions to "
+                             "this file and stop, without tagging. Used to "
+                             "decide which reads need demultiplexing.")
     parser.add_argument("--targets",
                         help="fusion_targets.csv - only reads overlapping these "
                              "regions are tagged.")
@@ -109,8 +113,22 @@ def main():
                         help="Threads for BAM compression/decompression.")
     args = parser.parse_args()
 
+    if args.names_out:
+        if not args.targets:
+            parser.error("--names-out requires --targets")
+        regions = target_regions(args.targets, args.pad)
+        names = names_in_regions(args.bam, regions)
+        with open(args.names_out, "w") as fh:
+            for name in sorted(names):
+                fh.write(name + "\n")
+        print(f"{len(names)} reads in {len(regions)} target regions "
+              f"written to {args.names_out}", file=sys.stderr)
+        return
+
     if not args.all and not args.targets:
         parser.error("either --targets or --all is required")
+    if not args.barcodes or not args.output:
+        parser.error("--barcodes and --output are required when tagging")
 
     keep_names = None
     if not args.all:

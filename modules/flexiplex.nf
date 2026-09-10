@@ -13,7 +13,7 @@ process getFusionReadsFlexiplex {
 
 	output:
 	tuple val("${fusion_genes}_${chrom1}_${base1}_${chrom2}_${base2}"),
-          path("${fusion_genes}_${chrom1}_${base1}_${chrom2}_${base2}_read_ids.txt"), emit: read_ids
+          path("${fusion_genes}_${chrom1}_${base1}_${chrom2}_${base2}_flexiplex_read_ids.txt"), emit: read_ids
 	path("${fusion_genes}_${chrom1}_${base1}_${chrom2}_${base2}_reads.fastq"), emit: reads
 
 	script:
@@ -28,7 +28,7 @@ process getFusionReadsFlexiplex {
 		-x ${sequence1}${sequence2} -d grep -f 1 > ${fusion_name}_reads.fastq
 
 	awk 'NR%4==1 { sub(/^@/, "", \$0) ; print \$1 }' ${fusion_name}_reads.fastq | \\
-		sort -u > ${fusion_name}_read_ids.txt
+		sort -u > ${fusion_name}_flexiplex_read_ids.txt
 	"""
 }
 
