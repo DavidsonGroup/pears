@@ -23,7 +23,8 @@ include { downloadReferences } from './modules/download_references.nf'
 include { genFusionTargets ; mergeFusionTargetLists } from './modules/gen_fusion_targets.nf'
 include { prepareIncludeList } from './modules/prepare_include_list.nf'
 include { calculateReadLength } from './modules/calculate_read_length.nf'
-include { buildSTARIndex; runSTARSolo } from './modules/star_solo.nf'
+include { buildSTARIndex; runSTAR } from './modules/star.nf'
+include { discoverBarcodes; demultiplexReads; demultiplexReadsVisiumHD; transferBarcodesToBAM } from './modules/demultiplex.nf'
 include { runFuscia } from './modules/fuscia.nf'
 include { getFusionReadsFlexiplex; getBarcodesFlexiplex } from './modules/flexiplex.nf'
 include { formatFuscia; formatFlexiplex; formatArriba ; combineFusionCalls ; convertToSpatialBarcodes } from './modules/formatting.nf'
@@ -51,6 +52,11 @@ def getBarcodeLength(barcode_path) {
 	}
 	return first_line.length()
 }
+
+// Fresh channels of the input FASTQs, so that they can be consumed by more
+// than one process
+def read1_files() { channel.fromPath(params.fastq_r1).collect() }
+def read2_files() { channel.fromPath(params.fastq_r2).collect() }
 
 workflow {
 	log.info pears_banner()
@@ -123,8 +129,7 @@ workflow {
 	// Build STAR index if not already provided via pre-built references
 	if (!params.star_genome_index) {
 		// Calculate R2 read length for STAR index generation
-		r2_files = channel.fromPath(params.fastq_r2).collect()
-		read_length = calculateReadLength(r2_files)
+		read_length = calculateReadLength(read2_files())
 
 		star_index = buildSTARIndex(
 			ref_fasta,
@@ -133,16 +138,37 @@ workflow {
 		)
 	}
 
-	star_solo_result = runSTARSolo(
-		channel.fromPath(params.fastq_r1).collect(),
-		channel.fromPath(params.fastq_r2).collect(),
+	// Demultiplex every read from R1 before alignment. The resulting table is
+	// the single source of barcodes for fuscia, arriba and flexiplex.
+	if (params.protocol == "10x-3prime-visiumHD") {
+		barcode_table = demultiplexReadsVisiumHD(read1_files(), include_list).first()
+	} else {
+		if (params.barcode_list) {
+			barcode_list = channel.value(file(params.barcode_list))
+			log.info "Using supplied barcode list: ${params.barcode_list}"
+		} else {
+			barcode_list = discoverBarcodes(
+				read1_files(),
+				include_list,
+				flexiplex_demultiplex_options
+			).barcode_list
+		}
+
+		barcode_table = demultiplexReads(
+			read1_files(),
+			barcode_list,
+			flexiplex_demultiplex_options
+		).first()
+	}
+
+	// Align the cDNA read (R2); barcodes come from the demultiplexing table
+	star_result = runSTAR(
+		read2_files(),
 		star_index,
-		include_list,
-		umi_length,
 		params.protocol
 	)
 
-	arriba_output = runArriba(star_solo_result.arriba_bam, ref_fasta, ref_gtf)
+	arriba_output = runArriba(star_result.arriba_bam, ref_fasta, ref_gtf)
 
 	final_target_list = params.known_fusions_list ? file(params.known_fusions_list) : null
 
@@ -176,29 +202,42 @@ workflow {
 			)
 		}
 
-	fuscia_result = runFuscia(fusion_target_rows, star_solo_result.bam, star_solo_result.bam_index, params.fuscia_mapqual)
+	// Write the demultiplexed barcodes onto the BAM as CB/UB tags for fuscia.
+	// Taking fusion_targets as input keeps this downstream of arriba: with
+	// discover_fusions the target list is not complete until get_novel_fusions
+	// has read the arriba output, so the tagged regions cover the novel
+	// fusions as well as the known ones.
+	tagged_bam = transferBarcodesToBAM(
+		star_result.bam,
+		star_result.bam_index,
+		barcode_table,
+		fusion_targets
+	)
+
+	fuscia_result = runFuscia(fusion_target_rows, tagged_bam.bam, tagged_bam.bam_index, params.fuscia_mapqual)
+
+	// The read ID lists for every fusion are gathered so that the barcode
+	// table - which is large - is scanned once rather than once per fusion
 	flexiplex_reads = getFusionReadsFlexiplex(
 		fusion_target_rows,
-		channel.fromPath(params.fastq_r1).collect(),
-		channel.fromPath(params.fastq_r2).collect(),
-	)
+		read2_files()
+	).read_ids \
+		| map { fusion_name, read_ids -> read_ids } \
+		| collect
 	flexiplex_result = getBarcodesFlexiplex(
                                  flexiplex_reads,
-                                 include_list,
-                                 flexiplex_demultiplex_options,
-				 params.protocol
+                                 barcode_table
         )
 
 	arriba_reads = getFusionReadsArriba(
                 fusion_target_rows,
-		arriba_output,
-                channel.fromPath(params.fastq_r1).collect(),
-	)
+		arriba_output
+	) \
+		| map { fusion_name, read_ids -> read_ids } \
+		| collect
 	arriba_result = getBarcodesArriba(
                                  arriba_reads,
-                                 include_list,
-                                 flexiplex_demultiplex_options,
-                                 params.protocol
+                                 barcode_table
 	)
 
 	// collapse each into a single emission
@@ -208,8 +247,8 @@ workflow {
 
 	// formatting
 	fuscia_final = formatFuscia(fuscia_collected, "fuscia_fusion_calls.csv")
-	flexiplex_final = formatFlexiplex(flexiplex_collected, "flexiplex_fusion_calls.csv", params.protocol)
-	arriba_final = formatArriba(arriba_collected, "arriba_fusion_calls.csv", params.protocol)
+	flexiplex_final = formatFlexiplex(flexiplex_collected, "flexiplex_fusion_calls.csv")
+	arriba_final = formatArriba(arriba_collected, "arriba_fusion_calls.csv")
 
 	combined = combineFusionCalls(arriba_final,flexiplex_final,fuscia_final)
 

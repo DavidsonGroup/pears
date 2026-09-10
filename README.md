@@ -8,9 +8,10 @@ PEARS is a Nextflow DSL2 pipeline that detects gene fusions at single-cell resol
 
 1. **Reference preparation** — Downloads genome FASTA and GTF annotation (or uses pre-built references).
 2. **Fusion target generation** — Builds search targets from a known fusions list using the reference annotation.
-3. **Alignment** — Aligns reads with STARsolo (chimeric-aware) and produces a BAM and single-cell count matrix.
-4. **Fusion detection** - Calls fusions using [FUSCIA](https://github.com/ding-lab/fuscia), [Flexiplex](https://github.com/DavidsonGroup/flexiplex), and [Arriba](https://github.com/suhrig/arriba) in parallel.
-5. **Formatting** — Consolidates results into per-cell fusion call CSVs per tool, and a `combined_fusions.csv` merging all three. For Visium HD data, spatial bin barcodes are also written to `combined_fusions_spatial.csv`.
+3. **Demultiplexing** — Assigns a cell barcode and UMI to every read from R1 with [Flexiplex](https://github.com/DavidsonGroup/flexiplex), before alignment. For 10x single-cell data the barcodes present in the data are discovered first (Flexiplex without a known list), and the most abundant `--barcode_discovery_top_n` of them are intersected with the whitelist to give the list used for demultiplexing. For Visium HD the two halves of the spot barcode are matched against the slide whitelist directly.
+4. **Alignment** — Aligns the cDNA read (R2) with STAR (chimeric-aware), then writes the demultiplexed barcodes onto the BAM as `CB`/`UB` tags.
+5. **Fusion detection** - Calls fusions using [FUSCIA](https://github.com/ding-lab/fuscia), [Flexiplex](https://github.com/DavidsonGroup/flexiplex), and [Arriba](https://github.com/suhrig/arriba) in parallel. All three take their barcodes from the demultiplexing table, so a read is assigned the same cell in every caller.
+6. **Formatting** — Consolidates results into per-cell fusion call CSVs per tool, and a `combined_fusions.csv` merging all three. For Visium HD data, spatial bin barcodes are also written to `combined_fusions_spatial.csv`.
 
 ## Requirements
 
@@ -119,6 +120,10 @@ By default, the pipeline downloads the genome specified by `--genome_version` an
 |---|---|---|
 | `--flexiplex_searchlen` | `20` | Length of fusion junction sequence to search for (2x actual overlap). |
 | `--flexiplex_demultiplex_options` | *auto-generated* | Flexiplex demultiplexing options string. When not set, auto-generated as `-b "?{barcode_len}" -u "?{umi_len}" -e 1 -f 0` where barcode length is read from the whitelist file and UMI length comes from `--protocol` or `--umi_len`. Setting this explicitly overrides the auto-generated value. |
+| `--barcode_discovery_top_n` | `50000` | Number of the most abundant observed barcodes kept from the Flexiplex discovery pass before intersecting with the whitelist. Not used for Visium HD or when `--barcode_list` is given. |
+| `--barcode_list` | *discovered* | Barcode list to demultiplex against (one barcode per line, e.g. a list of called cells). Skips the discovery pass. |
+| `--tag_full_bam` | `false` | Write `CB`/`UB` tags onto every read in the BAM rather than only reads over the fusion targets. Needs enough memory to hold the whole read ID to barcode table. |
+| `--tag_bam_pad` | `1000` | Padding (bp) either side of each fusion target region when transferring barcodes onto the BAM. |
 | `--fuscia_mapqual` | `30` | Minimum mapping quality for FUSCIA read extraction. |
 | `--fuscia_up` | `1000` | Upstream search distance (bp) when no gene annotation is available. |
 | `--fuscia_down` | `1000` | Downstream search distance (bp) when no gene annotation is available. |
@@ -168,7 +173,8 @@ Results are written to `--out_dir` (default `pears_output/`):
 | `fuscia_fusion_calls.csv` | Per-cell fusion calls from FUSCIA. |
 | `flexiplex_fusion_calls.csv` | Per-cell fusion calls from Flexiplex. |
 | `arriba_fusion_calls.csv` | Per-cell fusion calls from Arriba. |
-| `STARsolo/` | BAM alignment, index, and single-cell count matrix. |
+| `demultiplex/` | Flexiplex barcode table for every read (`reads_barcodes.txt`), the discovered barcode counts, and the barcode list used. |
+| `STAR/` | BAM alignment and index, both as aligned (`Aligned.sortedByCoord.out.bam`) and with barcodes attached (`Aligned.sortedByCoord.tagged.bam`). |
 | `fuscia_out/` | Per-fusion FUSCIA discordant read files. |
 | `flexiplex_out/` | Per-fusion Flexiplex barcode files. |
 | `arriba_out/` | Arriba fusion table and per-fusion barcode files. |

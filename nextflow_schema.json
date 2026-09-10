@@ -46,8 +46,7 @@
 		    "type": "string",
 		    "default": null,
 		    "description": "Arriba blacklist of fusions to filter out. File must be gzipped and full path provided."
-		},
-
+		}
             },
             "required": ["fastq_r1", "fastq_r2"]
         },
@@ -225,6 +224,32 @@
                     "type": "string",
                     "description": "Override flexiplex demultiplex options. If set to null, options are auto-generated: -b \"?{barcode_length}\" (barcode length is dynamically determined from the barcode include-list file), -u \"<umi_pattern>\" (UMI length based on protocol or umi_len), -e 1 -f 0.",
                     "fa_icon": "fas fa-cog"
+                },
+                "barcode_discovery_top_n": {
+                    "type": "integer",
+                    "default": 50000,
+                    "minimum": 1,
+                    "description": "Number of the most abundant observed barcodes kept from the flexiplex discovery pass before intersecting with the whitelist. Not used for VisiumHD or when barcode_list is given.",
+                    "fa_icon": "fas fa-sort-amount-down"
+                },
+                "barcode_list": {
+                    "type": "string",
+                    "format": "file-path",
+                    "description": "Barcode list to demultiplex against (one barcode per line, e.g. a list of called cells). Skips the flexiplex barcode discovery pass.",
+                    "fa_icon": "fas fa-list-ol"
+                },
+                "tag_full_bam": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Write CB/UB tags onto every read in the BAM rather than only reads overlapping the fusion targets. Needs enough memory to hold the whole read ID to barcode table.",
+                    "fa_icon": "fas fa-tags"
+                },
+                "tag_bam_pad": {
+                    "type": "integer",
+                    "default": 1000,
+                    "minimum": 0,
+                    "description": "Padding (bp) added either side of each fusion target region when transferring barcodes onto the BAM.",
+                    "fa_icon": "fas fa-arrows-alt-h"
                 },
                 "visium_bin_size": {
                     "type": "integer",

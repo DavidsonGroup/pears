@@ -16,6 +16,9 @@ process formatFuscia {
 	"""
 }
 
+// The barcode tables now always carry the full cell barcode in the CellBarcode
+// column - including the composite BC1_BC2 barcode for VisiumHD - so the same
+// formatting is used for every protocol.
 process formatFlexiplex {
 	label 'process_tiny'
 	publishDir "${params.out_dir}", mode: 'copy'
@@ -23,23 +26,15 @@ process formatFlexiplex {
 	input:
 	path(barcode_files)
 	val(output_file)
-	val(protocol)
 
 	output:
 	path("${output_file}")
 
 	script:
 	def input_files = barcode_files.collect { f -> f.name }.join(' ')
-
-	if (protocol == "10x-3prime-visiumHD") {
 	"""
-		format_barcodes.py --type flexiplex_hd --output '${output_file}' ${input_files}
+	format_barcodes.py --type flexiplex --output '${output_file}' ${input_files}
 	"""
-	} else {
-	"""
-		format_barcodes.py --type flexiplex --output '${output_file}' ${input_files}
-	"""
-	}
 }
 
 process formatArriba {
@@ -49,22 +44,15 @@ process formatArriba {
 	input:
 	path(barcode_files)
 	val(output_file)
-	val(protocol)
 
 	output:
 	path("${output_file}")
 
 	script:
 	def input_files = barcode_files.collect { f -> f.name }.join(' ')
-	if (protocol == "10x-3prime-visiumHD") {
-	"""
-	format_barcodes.py --type arriba_hd --output '${output_file}' ${input_files}
-	"""
-	} else {
 	"""
 	format_barcodes.py --type arriba --output '${output_file}' ${input_files}
 	"""
-	}
 }
 
 process combineFusionCalls {

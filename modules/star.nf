@@ -25,19 +25,19 @@ process buildSTARIndex {
 }
 
 
-// run STAR SOLO use different setting for visium
-// to deal with very large files (reduce multi-mapping)
-// barcode demultiplexing isn't optimal for visium yet
-process runSTARSolo {
+// Align the cDNA read (R2) with STAR. Barcodes and UMIs come from the flexiplex
+// demultiplexing step that runs before alignment, so R1 is not passed to STAR
+// at all and the CB/UB tags are written onto the BAM afterwards by
+// transferBarcodesToBAM.
+// VisiumHD uses different settings to deal with very large files
+// (reduced multi-mapping).
+process runSTAR {
 	label 'process_high'
-	publishDir "${params.out_dir}/STARsolo", mode: 'copy', pattern: "Aligned.sortedByCoord.out.bam*"
+	publishDir "${params.out_dir}/STAR", mode: 'copy', pattern: "Aligned.sortedByCoord.out.bam*"
 
 	input:
-	path(read1)
 	path(read2)
 	path(genome_index)
-	path(include_list)
-	val(umi_len)
 	val(protocol)
 
 	output:
@@ -46,34 +46,29 @@ process runSTARSolo {
 	path("Aligned.out.bam"), emit: arriba_bam
 
 	script:
+	// STAR takes a comma separated list for multiple files of the same mate
+	def read2_files = (read2 instanceof List) ? read2 : [read2]
+	def read2_arg = read2_files.join(',')
+	def read_files_command = read2_files.every { it.name.endsWith('.gz') } ? "--readFilesCommand zcat " : ""
 
 	STAR_args_common="STAR \
 		--runThreadN ${task.cpus} \
 		--genomeDir ${genome_index} \
 		--genomeLoad NoSharedMemory \
-		--readFilesIn ${read2} ${read1} \
-		--readFilesCommand zcat \
-		--outSAMtype BAM Unsorted SortedByCoordinate \
+		--readFilesIn ${read2_arg} \
+		${read_files_command}--outSAMtype BAM Unsorted SortedByCoordinate \
 		--outSAMunmapped Within \
 		--outBAMcompression 0 \
-		--peOverlapNbasesMin 10 \
 		--alignSplicedMateMapLminOverLmate 0.5 \
 		--alignSJstitchMismatchNmax 5 -1 5 5 \
 		--chimOutType WithinBAM HardClip \
-		--outSAMattributes NH HI nM AS CB UB \
-		--soloUMIdedup NoDedup \
+		--outSAMattributes NH HI nM AS \
 		--chimScoreJunctionNonGTAG 0 \
 		--chimSegmentReadGapMax 3" 
 
 	if(protocol=="10x-3prime-visiumHD"){
 	"""
 	   ${STAR_args_common} \
-      		--soloType CB_UMI_Complex \
-		--soloCBwhitelist $include_list $include_list \
-		--soloCBposition 0_10_0_23 1_-17_1_-4 \
-		--soloUMIposition 0_0_0_8 \
-		--soloCBmatchWLtype 1MM \
-		--soloBarcodeReadLength 0 \
 		--limitBAMsortRAM 149759137861 \
 		--outSAMmultNmax 1 \
 		--chimMainSegmentMultNmax 1 \
@@ -89,9 +84,6 @@ process runSTARSolo {
 	} else {
 	"""
 	   ${STAR_args_common} \
-		--soloType CB_UMI_Simple \
-		--soloCBwhitelist $include_list \
-		--soloUMIlen $umi_len \
 		--outFilterMultimapNmax 50 \
 		--chimMultimapNmax 50 \
 		--chimJunctionOverhangMin 10 \

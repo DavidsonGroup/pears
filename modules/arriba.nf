@@ -25,6 +25,9 @@ process runArriba {
 	"""
 }
 
+// Collect the IDs of the reads arriba assigned to each fusion. The barcodes
+// for those reads are looked up in the pipeline-wide demultiplexing table, so
+// the reads themselves are no longer pulled out of the FASTQ.
 process getFusionReadsArriba {
 	label 'process_low'
 	publishDir "${params.out_dir}/arriba_out", mode: 'copy'
@@ -32,68 +35,48 @@ process getFusionReadsArriba {
 	input:
 	tuple val(fusion_genes), val(chrom1), val(gene1), val(base1), val(sequence1), val(chrom2), val(gene2), val(base2), val(sequence2)
 	path(fusion_table)
-	path(fastq_r1)
 
 	output:
 	tuple val("${fusion_genes}_${chrom1}_${base1}_${chrom2}_${base2}"),
-          path("${fusion_genes}_${chrom1}_${base1}_${chrom2}_${base2}.fastq")
+          path("${fusion_genes}_${chrom1}_${base1}_${chrom2}_${base2}_read_ids.txt")
 
 	script:
 	"""
 	set +e
 
-	fus=`echo ${fusion_genes} | sed 's/--/\t/g'` ;
 	pos=`echo -e "${chrom1}:${base1}\t${chrom2}:${base2}"`
 	fusion_name=`echo ${fusion_genes}_${chrom1}_${base1}_${chrom2}_${base2}`
 
 	grep -e "\$pos" ${fusion_table} |\
 		cut -f30 |\
 		sed 's/,/\\n/g' |\
-		sed 's/\$/ /g' |\
-		sed 's/^/^@/g' |\
-		grep -f - <(gunzip -c ${fastq_r1}) -A3 --no-group-separator |\
-			sed "/^[@+]/! s/^/%%%%%%%/g" > "\$fusion_name".fastq ;
-	"""
-} //grep -e "\$fus"
+		sed 's/[[:space:]]*\$//' |\
+		sort -u |\
+		grep -v '^\$' > "\$fusion_name"_read_ids.txt
 
+	touch "\$fusion_name"_read_ids.txt
+	"""
+}
+
+// Pull the barcodes for the arriba fusion reads out of the pipeline-wide
+// demultiplexing table (see modules/demultiplex.nf). All fusions are done in
+// one job: the table is large, and scanning it once beats queueing a short job
+// per fusion.
 process getBarcodesArriba {
 	label 'process_low'
 	publishDir "${params.out_dir}/arriba_out", mode: 'copy'
 
 	input:
-	tuple val(fusion_name), path(reads)
-        path(include_list)
-        val(flexiplex_demultiplex_options)
-        val(protocol)
+	path(read_ids)
+	path(barcode_table)
 
-        output:
-        path "barcodes_${fusion_name}_reads_barcodes.txt"
+	output:
+	path "barcodes_*_reads_barcodes.txt"
 
-        script:
-
-	if (protocol == "10x-3prime-visiumHD") {
-        """
-           cat ${reads} | flexiplex \
-               -x "%%%%%%%?????????G?????????????" \
-               -b "???????????????" \
-	       -k ${include_list} \
-               -e 1 -f 2 -r false | \
-               flexiplex \
-               -x "%%%%%%%" \
-               -u "?????????" \
-               -x "G" \
-	       -b "?????????????" \
-               -k ${include_list} \
-               -e 1 -f 2 -n barcodes_${fusion_name} ;
-        """
-        } else {
-
-        """
-          flexiplex -x %%%%%%% \
-                  ${flexiplex_demultiplex_options} \
-                  -k ${include_list} -n barcodes_${fusion_name} ${reads} ;
-        """
-       }
+	script:
+	"""
+	lookup_barcodes.py --barcodes ${barcode_table} ${read_ids}
+	"""
 }
 
 
