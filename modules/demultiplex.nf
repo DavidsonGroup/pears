@@ -17,50 +17,6 @@
  * demultiplexing used.
  */
 
-// Discover the barcodes present in the data, then intersect with the whitelist.
-// Running flexiplex without -k reports every observed barcode with its read
-// count; the most abundant params.barcode_discovery_top_n of those are
-// intersected with the 10x whitelist to give the final list. Matching against
-// this short list rather than the full ~6.8M whitelist is what makes the second
-// flexiplex pass tractable on short-read data.
-process discoverBarcodes {
-	label 'process_high'
-	publishDir "${params.out_dir}/demultiplex", mode: 'copy'
-
-	input:
-	path(read1)
-	path(include_list)
-	val(flexiplex_demultiplex_options)
-
-	output:
-	path("barcode_list.txt"),               emit: barcode_list
-	path("flexiplex_barcodes_counts.txt"),  emit: counts
-
-	script:
-	"""
-	for f in ${read1} ; do
-		if [[ "\$f" == *.gz ]] ; then gunzip -c "\$f" ; else cat "\$f" ; fi
-	done | \\
-	awk 'NR%4==2 || NR%4==0 { print "%%%%%%%" \$0 ; next } { print }' | \\
-	flexiplex -x %%%%%%% \\
-		${flexiplex_demultiplex_options} \\
-		-p ${task.cpus} -n flexiplex > /dev/null
-
-	head -n ${params.barcode_discovery_top_n} flexiplex_barcodes_counts.txt | \\
-		cut -f1 > top_barcodes.txt
-
-	awk 'NR==FNR { wl[\$1] ; next } (\$1 in wl)' ${include_list} top_barcodes.txt \\
-		> barcode_list.txt
-
-	n_barcodes=\$(wc -l < barcode_list.txt)
-	echo "Kept \$n_barcodes of the top ${params.barcode_discovery_top_n} observed barcodes after intersecting with the whitelist" 1>&2
-	if [[ "\$n_barcodes" -eq 0 ]] ; then
-		echo "ERROR: no observed barcode matched the whitelist - check --protocol and the read structure" 1>&2
-		exit 1
-	fi
-	"""
-}
-
 // Build the barcode list from the reads that are about to be demultiplexed.
 // The only barcodes assignable to a read set are the ones observable in it, so
 // the list is the observed barcodes that are in the whitelist, plus - unless
@@ -157,11 +113,10 @@ process collectTargetReadIDs {
 	"""
 }
 
-// Cut R1 down to those reads before demultiplexing. Flexiplex spends its time
-// on reads that do not match the barcode list exactly - each one costs an edit
-// distance against every barcode in the list - so demultiplexing thousands of
-// reads instead of the whole library is the difference between seconds and
-// hours. Set --demultiplex_all_reads to skip this and demultiplex everything.
+// Cut R1 down to those reads before demultiplexing. Demultiplexing the whole
+// library costs hours: every read that does not match the barcode list exactly
+// has to be compared against every barcode in it. Restricting to the reads
+// fusion calling actually needs brings that down to seconds.
 process extractTargetReads {
 	label 'process_low'
 	publishDir "${params.out_dir}/demultiplex", mode: 'copy'
@@ -182,8 +137,8 @@ process extractTargetReads {
 	"""
 }
 
-// Assign a barcode and UMI to every read given, against the list from
-// discoverBarcodes (or a user supplied --barcode_list).
+// Assign a barcode and UMI to every read given, using flexiplex against the
+// list from buildBarcodeList (--demultiplexer flexiplex).
 process demultiplexReads {
 	label 'process_high'
 	publishDir "${params.out_dir}/demultiplex", mode: 'copy'
@@ -269,15 +224,14 @@ process transferBarcodesToBAM {
 	path("Aligned.sortedByCoord.tagged.bam.bai"),  emit: bam_index
 
 	script:
-	def region_opts = params.tag_full_bam ? "--all" :
-		"--targets ${fusion_targets} --pad ${params.tag_bam_pad}"
 	"""
 	tag_bam_barcodes.py \\
 		--bam ${bam_file} \\
 		--barcodes ${barcode_table} \\
 		--output Aligned.sortedByCoord.tagged.bam \\
 		--threads ${task.cpus} \\
-		${region_opts}
+		--targets ${fusion_targets} \\
+		--pad ${params.tag_bam_pad}
 
 	samtools index -@ ${task.cpus} Aligned.sortedByCoord.tagged.bam
 	"""

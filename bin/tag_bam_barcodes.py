@@ -10,10 +10,8 @@ read is tagged, chimeric and supplementary records included, which is what
 fusion calling needs and what aligner-side demultiplexing did not give us
 (see modules/demultiplex.nf).
 
-By default only reads overlapping the fusion target regions are tagged, which
-keeps the read-ID lookup table small. Use --all to tag every read in the BAM
-(the lookup table is then held in memory for the whole run, which for a full
-10x library needs tens of GB of RAM).
+Only reads overlapping the fusion target regions are tagged - those are the
+reads fuscia inspects, and the ones that were demultiplexed.
 """
 
 import argparse
@@ -107,8 +105,6 @@ def main():
                              "regions are tagged.")
     parser.add_argument("--pad", type=int, default=1000,
                         help="Padding (bp) added either side of each target region.")
-    parser.add_argument("--all", action="store_true",
-                        help="Tag every read in the BAM (memory hungry).")
     parser.add_argument("--threads", type=int, default=1,
                         help="Threads for BAM compression/decompression.")
     args = parser.parse_args()
@@ -125,17 +121,15 @@ def main():
               f"written to {args.names_out}", file=sys.stderr)
         return
 
-    if not args.all and not args.targets:
-        parser.error("either --targets or --all is required")
+    if not args.targets:
+        parser.error("--targets is required")
     if not args.barcodes or not args.output:
         parser.error("--barcodes and --output are required when tagging")
 
-    keep_names = None
-    if not args.all:
-        regions = target_regions(args.targets, args.pad)
-        keep_names = names_in_regions(args.bam, regions)
-        print(f"{len(keep_names)} reads in {len(regions)} target regions",
-              file=sys.stderr)
+    regions = target_regions(args.targets, args.pad)
+    keep_names = names_in_regions(args.bam, regions)
+    print(f"{len(keep_names)} reads in {len(regions)} target regions",
+          file=sys.stderr)
 
     barcodes = load_barcodes(args.barcodes, keep_names)
     print(f"{len(barcodes)} of these reads have a barcode assignment",

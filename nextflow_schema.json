@@ -31,24 +31,27 @@
                     "description": "CSV file containing known fusions (e.g., JAFFA output).",
                     "fa_icon": "fas fa-file-csv"
                 },
-		"discover_fusions": {
-		    "type": "boolean",
-		    "default": false,
-		    "description": "Whether to search for new fusions in addition to those in known_fusions_list"
-		},
-		"min_arriba_support": {
-		    "type": "integer",
-		    "default": 1,
-		    "minimum": 1,
-		    "description": "Minimum read support required before a new fusion is searched for. Only applicable when discover_fusions is true"
-		},
-		"arriba_exclusion_file": {
-		    "type": "string",
-		    "default": null,
-		    "description": "Arriba blacklist of fusions to filter out. File must be gzipped and full path provided."
-		}
+                "discover_fusions": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Whether to search for new fusions in addition to those in known_fusions_list"
+                },
+                "min_arriba_support": {
+                    "type": "integer",
+                    "default": 1,
+                    "minimum": 1,
+                    "description": "Minimum read support required before a new fusion is searched for. Only applicable when discover_fusions is true"
+                },
+                "arriba_exclusion_file": {
+                    "type": "string",
+                    "default": null,
+                    "description": "Arriba blacklist of fusions to filter out. File must be gzipped and full path provided."
+                }
             },
-            "required": ["fastq_r1", "fastq_r2"]
+            "required": [
+                "fastq_r1",
+                "fastq_r2"
+            ]
         },
         "reference_options": {
             "title": "Reference Options",
@@ -93,9 +96,18 @@
                 }
             },
             "dependentRequired": {
-                "star_genome_index": ["ref_fasta", "ref_gtf"],
-                "ref_fasta": ["ref_gtf", "star_genome_index"],
-                "ref_gtf": ["ref_fasta", "star_genome_index"]
+                "star_genome_index": [
+                    "ref_fasta",
+                    "ref_gtf"
+                ],
+                "ref_fasta": [
+                    "ref_gtf",
+                    "star_genome_index"
+                ],
+                "ref_gtf": [
+                    "ref_fasta",
+                    "star_genome_index"
+                ]
             }
         },
         "output_options": {
@@ -127,7 +139,7 @@
                         "10x-3prime-v4",
                         "10x-5prime-v2",
                         "10x-5prime-v3",
-			"10x-3prime-visiumHD"
+                        "10x-3prime-visiumHD"
                     ],
                     "enumNames": [
                         "10x 3' Gene Expression v2 (UMI: 10bp, Barcodes: 737K-august-2016.txt.gz)",
@@ -135,7 +147,7 @@
                         "10x 3' Gene Expression v4 (UMI: 12bp, Barcodes: 3M-3pgex-may-2023.txt.gz)",
                         "10x 5' Gene Expression v1/v2 (UMI: 10bp, Barcodes: 737K-august-2016.txt.gz)",
                         "10x 5' Gene Expression v3 (UMI: 12bp, Barcodes: 3M-5pgex-jan-2023.txt.gz)",
-			"10x 3' Visium HD - Gene Expression v3 (UMI: 9bp, Barcodes: visium-hd.txt.gz)"
+                        "10x 3' Visium HD - Gene Expression v3 (UMI: 9bp, Barcodes: visium-hd.txt.gz)"
                     ]
                 },
                 "umi_len": {
@@ -228,41 +240,28 @@
                 "demultiplexer": {
                     "type": "string",
                     "default": "direct",
-                    "enum": ["direct", "flexiplex"],
-                    "description": "How barcodes are assigned to the reads. 'direct' reads the barcode and UMI at their fixed offset and corrects against candidates taken from the reads, resolving ambiguous corrections by candidate abundance and base quality. 'flexiplex' hands the barcode list to flexiplex instead. VisiumHD and demultiplex_all_reads always use flexiplex.",
+                    "enum": [
+                        "direct",
+                        "flexiplex"
+                    ],
+                    "description": "How barcodes are assigned to the reads. 'direct' reads the barcode and UMI at their fixed offset and corrects against candidates taken from the reads, resolving ambiguous corrections by candidate abundance and base quality. 'flexiplex' hands the barcode list to flexiplex instead. VisiumHD always uses flexiplex.",
                     "fa_icon": "fas fa-random"
                 },
                 "barcode_list_edit_distance": {
                     "type": "integer",
                     "default": 1,
-                    "enum": [0, 1],
+                    "enum": [
+                        0,
+                        1
+                    ],
                     "description": "How the barcode list is built from the reads being demultiplexed. 1 (default) keeps the observed barcodes that are in the whitelist plus the whitelist barcodes one error away from an observed barcode that is not, which matches what demultiplexing against the whole whitelist would give. 0 keeps only exact whitelist hits, which drops reads carrying a sequencing error in the barcode.",
                     "fa_icon": "fas fa-crosshairs"
-                },
-                "barcode_discovery_top_n": {
-                    "type": "integer",
-                    "default": 50000,
-                    "minimum": 1,
-                    "description": "Only used with demultiplex_all_reads: the number of the most abundant observed barcodes kept from the flexiplex discovery pass before intersecting with the whitelist.",
-                    "fa_icon": "fas fa-sort-amount-down"
                 },
                 "barcode_list": {
                     "type": "string",
                     "format": "file-path",
                     "description": "Barcode list to demultiplex against (one barcode per line, e.g. a list of called cells). Skips the flexiplex barcode discovery pass.",
                     "fa_icon": "fas fa-list-ol"
-                },
-                "demultiplex_all_reads": {
-                    "type": "boolean",
-                    "default": false,
-                    "description": "Demultiplex every read in the library rather than only the reads needed for fusion calling (reads over the fusion targets plus the fusion-supporting reads). Much slower: flexiplex compares every read that does not exactly match the barcode list against the entire list. Required by tag_full_bam.",
-                    "fa_icon": "fas fa-layer-group"
-                },
-                "tag_full_bam": {
-                    "type": "boolean",
-                    "default": false,
-                    "description": "Write CB/UB tags onto every read in the BAM rather than only reads overlapping the fusion targets. Needs enough memory to hold the whole read ID to barcode table.",
-                    "fa_icon": "fas fa-tags"
                 },
                 "tag_bam_pad": {
                     "type": "integer",
@@ -274,7 +273,11 @@
                 "visium_bin_size": {
                     "type": "integer",
                     "default": 8,
-                    "enum": [2, 8, 16],
+                    "enum": [
+                        2,
+                        8,
+                        16
+                    ],
                     "description": "VisiumHD spatial bin size in microns. Converts BC1_BC2 barcodes to SpaceRanger format (e.g. s_008um_XXXXX_YYYYY-1). Only applied when protocol is 10x-3prime-visiumHD.",
                     "fa_icon": "fas fa-th"
                 }
@@ -282,12 +285,26 @@
         }
     },
     "allOf": [
-        { "$ref": "#/defs/input_options" },
-        { "$ref": "#/defs/protocol_options" },
-        { "$ref": "#/defs/reference_options" },
-        { "$ref": "#/defs/output_options" },
-        { "$ref": "#/defs/resource_options" },
-        { "$ref": "#/defs/flexiplex_options" },
-        { "$ref": "#/defs/fuscia_options" }
+        {
+            "$ref": "#/defs/input_options"
+        },
+        {
+            "$ref": "#/defs/protocol_options"
+        },
+        {
+            "$ref": "#/defs/reference_options"
+        },
+        {
+            "$ref": "#/defs/output_options"
+        },
+        {
+            "$ref": "#/defs/resource_options"
+        },
+        {
+            "$ref": "#/defs/flexiplex_options"
+        },
+        {
+            "$ref": "#/defs/fuscia_options"
+        }
     ]
 }

@@ -58,24 +58,27 @@ process getFusionReadsArriba {
 	"""
 }
 
-// Pull the barcodes for the arriba fusion reads out of the pipeline-wide
-// demultiplexing table (see modules/demultiplex.nf). All fusions are done in
-// one job: the table is large, and scanning it once beats queueing a short job
-// per fusion.
-process getBarcodesArriba {
+// Look the arriba fusion reads up in the demultiplexing table (see
+// modules/demultiplex.nf) and write the fusion calls. All fusions are done in
+// one job, in one pass over the table, and the calls are written straight out
+// rather than as a barcode table per fusion that then needs formatting.
+process getFusionCallsArriba {
 	label 'process_low'
-	publishDir "${params.out_dir}/arriba_out", mode: 'copy'
+	publishDir "${params.out_dir}", mode: 'copy'
 
 	input:
 	path(read_ids)
 	path(barcode_table)
 
 	output:
-	path "barcodes_*_reads_barcodes.txt"
+	path("arriba_fusion_calls.csv")
 
 	script:
 	"""
-	lookup_barcodes.py --barcodes ${barcode_table} ${read_ids}
+	lookup_barcodes.py \\
+		--barcodes ${barcode_table} \\
+		--output arriba_fusion_calls.csv \\
+		${read_ids}
 	"""
 }
 

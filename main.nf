@@ -24,11 +24,11 @@ include { genFusionTargets ; mergeFusionTargetLists } from './modules/gen_fusion
 include { prepareIncludeList } from './modules/prepare_include_list.nf'
 include { calculateReadLength } from './modules/calculate_read_length.nf'
 include { buildSTARIndex; runSTAR } from './modules/star.nf'
-include { discoverBarcodes; buildBarcodeList; demultiplexReadsDirect; collectTargetReadIDs; extractTargetReads; demultiplexReads; demultiplexReadsVisiumHD; transferBarcodesToBAM } from './modules/demultiplex.nf'
+include { buildBarcodeList; demultiplexReadsDirect; collectTargetReadIDs; extractTargetReads; demultiplexReads; demultiplexReadsVisiumHD; transferBarcodesToBAM } from './modules/demultiplex.nf'
 include { runFuscia } from './modules/fuscia.nf'
-include { getFusionReadsFlexiplex; getBarcodesFlexiplex } from './modules/flexiplex.nf'
-include { formatFuscia; formatFlexiplex; formatArriba ; combineFusionCalls ; convertToSpatialBarcodes } from './modules/formatting.nf'
-include { runArriba ; getFusionReadsArriba; getBarcodesArriba ; get_novel_fusions } from './modules/arriba.nf'
+include { getFusionReadsFlexiplex; getFusionCallsFlexiplex } from './modules/flexiplex.nf'
+include { formatFuscia ; combineFusionCalls ; convertToSpatialBarcodes } from './modules/formatting.nf'
+include { runArriba ; getFusionReadsArriba; getFusionCallsArriba ; get_novel_fusions } from './modules/arriba.nf'
 
 // Calculate barcode length from first line of barcode file (handles gzipped files)
 def getBarcodeLength(barcode_path) {
@@ -101,11 +101,6 @@ workflow {
 	def default_flexiplex_opts = "-b \"${barcode_pattern}\" -u \"${umi_pattern}\" -e 1 -f 0"
 	flexiplex_demultiplex_options = params.flexiplex_demultiplex_options ?: default_flexiplex_opts
 	log.info "Flexiplex demultiplex options: ${flexiplex_demultiplex_options} (barcode_len=${barcode_length}, umi_len=${umi_length})"
-
-	// Tagging every read needs a barcode for every read
-	if (params.tag_full_bam && !params.demultiplex_all_reads) {
-		error "--tag_full_bam requires --demultiplex_all_reads, which demultiplexes the whole library (slow: flexiplex compares every read that does not match the barcode list exactly against the entire list)"
-	}
 
 	// Use pre-built references if all three are provided, otherwise download
 	if (params.ref_fasta && params.ref_gtf && params.star_genome_index) {
@@ -200,60 +195,36 @@ workflow {
 		| map { fusion_name, read_ids -> read_ids } \
 		| collect
 
-	// Demultiplex. Only the reads that need a barcode are handed to flexiplex:
-	// the reads over the fusion targets in the BAM, which is what fuscia
+	// Demultiplex. Only the reads that need a barcode are demultiplexed: the
+	// reads over the fusion targets in the BAM, which is what fuscia
 	// inspects, plus the fusion-supporting reads arriba and flexiplex found.
-	// Everything downstream of this point is unchanged by the restriction,
-	// and --demultiplex_all_reads runs the whole library instead.
-	if (params.demultiplex_all_reads) {
-		demultiplex_input = read1_files()
-	} else {
-		target_read_ids = collectTargetReadIDs(
-			star_result.bam,
-			star_result.bam_index,
-			fusion_targets,
-			flexiplex_reads.mix(arriba_reads).collect()
-		)
-		demultiplex_input = extractTargetReads(read1_files(), target_read_ids)
-	}
+	target_read_ids = collectTargetReadIDs(
+		star_result.bam,
+		star_result.bam_index,
+		fusion_targets,
+		flexiplex_reads.mix(arriba_reads).collect()
+	)
+	demultiplex_input = extractTargetReads(read1_files(), target_read_ids)
 
-	// Assign the barcodes. The read subset is demultiplexed directly, against
-	// candidates taken from the reads themselves. VisiumHD uses flexiplex,
-	// whose two-stage search handles the split spot barcode, and so does the
-	// whole library, where the barcodes have to be ranked over every read.
+	// a supplied list of called cells is used in place of the whitelist
+	barcode_whitelist = params.barcode_list ? channel.value(file(params.barcode_list)) : include_list
+
+	// Assign the barcodes, against candidates taken from the reads themselves.
+	// VisiumHD uses flexiplex, whose two-stage search handles the split spot
+	// barcode; --demultiplexer flexiplex uses it for the rest too.
 	if (params.protocol == "10x-3prime-visiumHD") {
 		barcode_table = demultiplexReadsVisiumHD(demultiplex_input, include_list).first()
-	} else if (params.demultiplexer == "direct" && !params.demultiplex_all_reads) {
+	} else if (params.demultiplexer == "direct") {
 		barcode_table = demultiplexReadsDirect(
 			demultiplex_input,
-			params.barcode_list ? channel.value(file(params.barcode_list)) : include_list,
+			barcode_whitelist,
 			barcode_length,
 			umi_length
 		).first()
 	} else {
-		if (params.demultiplexer == "direct") {
-			log.info "Demultiplexing the whole library: using flexiplex rather than --demultiplexer direct"
-		}
-		if (params.barcode_list) {
-			barcode_list = channel.value(file(params.barcode_list))
-			log.info "Using supplied barcode list: ${params.barcode_list}"
-		} else if (params.demultiplex_all_reads) {
-			barcode_list = discoverBarcodes(
-				read1_files(),
-				include_list,
-				flexiplex_demultiplex_options
-			).barcode_list
-		} else {
-			barcode_list = buildBarcodeList(
-				demultiplex_input,
-				include_list,
-				barcode_length
-			)
-		}
-
 		barcode_table = demultiplexReads(
 			demultiplex_input,
-			barcode_list,
+			buildBarcodeList(demultiplex_input, barcode_whitelist, barcode_length),
 			flexiplex_demultiplex_options
 		).first()
 	}
@@ -272,25 +243,11 @@ workflow {
 
 	fuscia_result = runFuscia(fusion_target_rows, tagged_bam.bam, tagged_bam.bam_index, params.fuscia_mapqual)
 
-	flexiplex_result = getBarcodesFlexiplex(
-                                 flexiplex_reads,
-                                 barcode_table
-        )
+	flexiplex_final = getFusionCallsFlexiplex(flexiplex_reads, barcode_table)
+	arriba_final = getFusionCallsArriba(arriba_reads, barcode_table)
 
-	arriba_result = getBarcodesArriba(
-                                 arriba_reads,
-                                 barcode_table
-	)
-
-	// collapse each into a single emission
-	fuscia_collected = fuscia_result | collect
-	flexiplex_collected = flexiplex_result | collect
-	arriba_collected = arriba_result | collect
-
-	// formatting
-	fuscia_final = formatFuscia(fuscia_collected, "fuscia_fusion_calls.csv")
-	flexiplex_final = formatFlexiplex(flexiplex_collected, "flexiplex_fusion_calls.csv")
-	arriba_final = formatArriba(arriba_collected, "arriba_fusion_calls.csv")
+	// fuscia writes one file per fusion, so those still need collecting
+	fuscia_final = formatFuscia(fuscia_result | collect, "fuscia_fusion_calls.csv")
 
 	combined = combineFusionCalls(arriba_final,flexiplex_final,fuscia_final)
 
