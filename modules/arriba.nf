@@ -83,6 +83,17 @@ process getFusionCallsArriba {
 }
 
 
+// Turn the arriba calls into extra fusion targets for the other tools.
+//
+// A gene pair on the known list is kept whatever its support, so the
+// breakpoints arriba found for it become targets too. With
+// --arriba_strict_breakpoints those are dropped instead: the known list
+// supplies the coordinates for its own gene pairs, and arriba is only reported
+// where its breakpoint matches one of them. Gene pairs that are not on the
+// known list always need min_arriba_support to be discovered.
+//
+// Keep prose out of the awk program below - it is single quoted, so one
+// apostrophe in a comment ends the program and awk gets a truncated script.
 process get_novel_fusions {
     label 'process_tiny'
     publishDir "${params.out_dir}/arriba_out", mode: 'copy'
@@ -134,12 +145,6 @@ process get_novel_fusions {
     	fusion = gene1 "--" gene2
     	support = \$10 + \$11 + \$12
 
-    	# A gene pair on the known list is normally kept whatever its support,
-    	# so arriba's own breakpoints for it become targets for every tool.
-    	# With arriba_strict_breakpoints those are dropped: the known list
-    	# supplies the coordinates for its own gene pairs, and arriba is only
-    	# reported where its breakpoint matches one of them. Gene pairs that
-    	# are not on the list still need min_arriba_support to be discovered.
     	if (fusion in allow) {
     	   if (strict == 1) next
     	} else if (support < min_support) next
