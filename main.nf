@@ -213,20 +213,20 @@ workflow {
 	// VisiumHD uses flexiplex, whose two-stage search handles the split spot
 	// barcode; --demultiplexer flexiplex uses it for the rest too.
 	if (params.protocol == "10x-3prime-visiumHD") {
-		barcode_table = demultiplexReadsVisiumHD(demultiplex_input, include_list).first()
+		barcode_table = demultiplexReadsVisiumHD(demultiplex_input, include_list)
 	} else if (params.demultiplexer == "direct") {
 		barcode_table = demultiplexReadsDirect(
 			demultiplex_input,
 			barcode_whitelist,
 			barcode_length,
 			umi_length
-		).first()
+		)
 	} else {
 		barcode_table = demultiplexReads(
 			demultiplex_input,
 			buildBarcodeList(demultiplex_input, barcode_whitelist, barcode_length),
 			flexiplex_demultiplex_options
-		).first()
+		)
 	}
 
 	// Write the demultiplexed barcodes onto the BAM as CB/UB tags for fuscia.
