@@ -5,3 +5,4 @@ CLAUDE.md
 /assets/*.tsv.gz
 .conda/
 modules/temp*
+__pycache__/

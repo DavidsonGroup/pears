@@ -102,7 +102,8 @@ process get_novel_fusions {
 
     tail -n +2 ${known_list} | cut -d',' -f1 > allowlist.txt
 
-    awk -F'\t' -v min_support=${params.min_arriba_support ?: 1} '
+    awk -F'\t' -v min_support=${params.min_arriba_support ?: 1} \\
+        -v strict=${params.arriba_strict_breakpoints ? 1 : 0} '
     BEGIN { OFS="," }
 
     FNR==NR {
@@ -133,7 +134,15 @@ process get_novel_fusions {
     	fusion = gene1 "--" gene2
     	support = \$10 + \$11 + \$12
 
-    	if (support < min_support && !(fusion in allow)) next
+    	# A gene pair on the known list is normally kept whatever its support,
+    	# so arriba's own breakpoints for it become targets for every tool.
+    	# With arriba_strict_breakpoints those are dropped: the known list
+    	# supplies the coordinates for its own gene pairs, and arriba is only
+    	# reported where its breakpoint matches one of them. Gene pairs that
+    	# are not on the list still need min_arriba_support to be discovered.
+    	if (fusion in allow) {
+    	   if (strict == 1) next
+    	} else if (support < min_support) next
 
     	print fusion, a[1], a[2], s1[2], b[1], b[2], s2[2], \$15
 	}' allowlist.txt fusions.tsv > extra_target.csv

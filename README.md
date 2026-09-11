@@ -9,7 +9,7 @@ PEARS is a Nextflow DSL2 pipeline that detects gene fusions at single-cell resol
 1. **Reference preparation** — Downloads genome FASTA and GTF annotation (or uses pre-built references).
 2. **Fusion target generation** — Builds search targets from a known fusions list using the reference annotation.
 3. **Alignment** — Aligns the cDNA read (R2) with STAR (chimeric-aware). R1 is not given to STAR; barcodes are handled separately.
-4. **Demultiplexing** — Assigns a cell barcode and UMI from R1, producing one barcode table for the run, which is then written onto the BAM as `CB`/`UB` tags. Only the reads that need a barcode are demultiplexed: those over the fusion target regions, plus the fusion-supporting reads found by Arriba and Flexiplex. The candidate barcodes come from those same reads — the observed barcodes that are in the 10x whitelist, plus the whitelist barcodes one error away from an observed barcode that is not, which are only consulted when no observed barcode explains the sequence (`--barcode_list_edit_distance 0` for exact matches only). Reads are then assigned at their fixed offset, with a barcode one error from more than one candidate resolved by candidate abundance and base quality rather than dropped. `--demultiplexer flexiplex` hands the barcode list to [Flexiplex](https://github.com/DavidsonGroup/flexiplex) instead. Visium HD always uses Flexiplex, whose two-stage search handles the split spot barcode.
+4. **Demultiplexing** — Assigns a cell barcode and UMI from R1, producing one barcode table for the run, which is then written onto the BAM as `CB`/`UB` tags. Only the reads that need a barcode are demultiplexed: those over the fusion target regions, plus the fusion-supporting reads found by Arriba and Flexiplex. The candidate barcodes come from those same reads — the observed barcodes that are in the 10x inclusion list, plus the inclusion list barcodes one error away from an observed barcode that is not, which are only consulted when no observed barcode explains the sequence (`--barcode_list_edit_distance 0` for exact matches only). Reads are then assigned at their fixed offset, with a barcode one error from more than one candidate resolved by candidate abundance and base quality rather than dropped. `--demultiplexer flexiplex` hands the barcode list to [Flexiplex](https://github.com/DavidsonGroup/flexiplex) instead. Visium HD always uses Flexiplex, whose two-stage search handles the split spot barcode.
 5. **Fusion detection** - Calls fusions using [FUSCIA](https://github.com/ding-lab/fuscia), [Flexiplex](https://github.com/DavidsonGroup/flexiplex), and [Arriba](https://github.com/suhrig/arriba) in parallel. All three take their barcodes from the demultiplexing table, so a read is assigned the same cell in every caller.
 6. **Formatting** — Consolidates results into per-cell fusion call CSVs per tool, and a `combined_fusions.csv` merging all three. For Visium HD data, spatial bin barcodes are also written to `combined_fusions_spatial.csv`.
 
@@ -69,16 +69,16 @@ See [Pre-built or reusing reference overrides](#pre-built-or-reusing-reference-o
 | `--fastq_r1` | — | Glob pattern or path to Read 1 FASTQ files (gzipped). |
 | `--fastq_r2` | — | Glob pattern or path to Read 2 FASTQ files (gzipped). |
 | `--known_fusions_list` | — | CSV file of known/candidate fusions to search for (see [Known fusions list format](#known-fusions-list-format)). |
-| `--protocol` | — | 10x Chromium chemistry preset (see [Protocol presets](#protocol-presets)). Sets the barcode whitelist and UMI length automatically. |
+| `--protocol` | — | 10x Chromium chemistry preset (see [Protocol presets](#protocol-presets)). Sets the barcode inclusion list and UMI length automatically. |
 | `--genome_version` | `GRCh38+GENCODE44` | Genome build to download. Available versions: `GRCh38+GENCODE40` through `GRCh38+GENCODE49`. |
 | `--out_dir` | `pears_output` | Directory for all pipeline outputs. |
 | `-profile` | — | Execution environment: `local` or `slurm`. |
 
 ### Protocol presets
 
-`--protocol` sets the barcode whitelist and UMI length for the given 10x chemistry. These values can be individually overridden with `--barcode_include_list` and `--umi_len` (see [Read structure overrides](#read-structure-overrides)).
+`--protocol` sets the barcode inclusion list and UMI length for the given 10x chemistry. These values can be individually overridden with `--barcode_include_list` and `--umi_len` (see [Read structure overrides](#read-structure-overrides)).
 
-| Preset | Chemistry | UMI length | Barcode whitelist |
+| Preset | Chemistry | UMI length | Barcode inclusion list |
 |---|---|---|---|
 | `10x-3prime-v2` | 3' Gene Expression v2 | 10 bp | 737K-august-2016 |
 | `10x-3prime-v3` | 3' Gene Expression v3/v3.1 | 12 bp | 3M-february-2018 |
@@ -93,7 +93,7 @@ See [Pre-built or reusing reference overrides](#pre-built-or-reusing-reference-o
 
 | Argument | Default | Overrides |
 |---|---|---|
-| `--barcode_include_list` | *set by `--protocol`* | Barcode whitelist. Path to a custom whitelist file (can be gzipped). |
+| `--barcode_include_list` | *set by `--protocol`* | Barcode inclusion list. Path to a custom inclusion list file (can be gzipped). |
 | `--umi_len` | *set by `--protocol`* | UMI length in bases. |
 
 ### Pre-built or reusing reference overrides
@@ -111,6 +111,7 @@ By default, the pipeline downloads the genome specified by `--genome_version` an
 | Argument | Default | Description |
 |---|---|---|
 | `--discover_fusions` | `false` | Search for novel fusions in addition to those in `--known_fusions_list`. Uses Arriba to discover candidates automatically. If no `--known_fusions_list` is provided, discovery is enabled automatically. |
+| `--arriba_strict_breakpoints` | `false` | Only report Arriba where its breakpoint matches one in the known fusion list. By default a gene pair on that list is kept at any support level and Arriba's own breakpoints for it become targets that Flexiplex and FUSCIA search too. Gene pairs not on the list still need `--min_arriba_support`. |
 | `--min_arriba_support` | `20000` | Minimum number of supporting reads required for a novel fusion discovered by Arriba to be included. Lower values find more candidates but increase runtime. |
 | `--arriba_exclusion_file` | — | Path to a gzipped Arriba blacklist file (`.tsv.gz`) used to filter out likely false-positive fusions. Bundled blacklists for common genomes are available from the [Arriba releases page](https://github.com/suhrig/arriba/releases). If not set, no blacklist filtering is applied. |
 
@@ -119,9 +120,9 @@ By default, the pipeline downloads the genome specified by `--genome_version` an
 | Argument | Default | Description |
 |---|---|---|
 | `--flexiplex_searchlen` | `20` | Length of fusion junction sequence to search for (2x actual overlap). |
-| `--flexiplex_demultiplex_options` | *auto-generated* | Flexiplex demultiplexing options string. When not set, auto-generated as `-b "?{barcode_len}" -u "?{umi_len}" -e 1 -f 0` where barcode length is read from the whitelist file and UMI length comes from `--protocol` or `--umi_len`. Setting this explicitly overrides the auto-generated value. |
+| `--flexiplex_demultiplex_options` | *auto-generated* | Flexiplex demultiplexing options string. When not set, auto-generated as `-b "?{barcode_len}" -u "?{umi_len}" -e 1 -f 0` where barcode length is read from the inclusion list file and UMI length comes from `--protocol` or `--umi_len`. Setting this explicitly overrides the auto-generated value. |
 | `--demultiplexer` | `direct` | How barcodes are assigned. `direct` reads the barcode and UMI at their fixed offset and corrects against candidates taken from the reads; `flexiplex` hands the barcode list to Flexiplex instead. Visium HD always uses Flexiplex. |
-| `--barcode_list_edit_distance` | `1` | How the barcode list is built from the reads being demultiplexed. `1` keeps observed barcodes found in the whitelist plus the whitelist barcodes one error away from an observed barcode that is not, matching what demultiplexing against the whole whitelist gives. `0` keeps only exact whitelist hits, dropping reads with a sequencing error in the barcode. |
+| `--barcode_list_edit_distance` | `1` | How the barcode list is built from the reads being demultiplexed. `1` keeps observed barcodes found in the inclusion list plus the inclusion list barcodes one error away from an observed barcode that is not, matching what demultiplexing against the whole inclusion list gives. `0` keeps only exact inclusion list hits, dropping reads with a sequencing error in the barcode. |
 | `--barcode_list` | *built from the reads* | Barcode list to demultiplex against (one barcode per line, e.g. a list of called cells). Skips building one. |
 | `--tag_bam_pad` | `1000` | Padding (bp) either side of each fusion target region when transferring barcodes onto the BAM. |
 | `--fuscia_mapqual` | `30` | Minimum mapping quality for FUSCIA read extraction. |

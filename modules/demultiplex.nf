@@ -19,8 +19,8 @@
 
 // Build the barcode list from the reads that are about to be demultiplexed.
 // The only barcodes assignable to a read set are the ones observable in it, so
-// the list is the observed barcodes that are in the whitelist, plus - unless
-// --barcode_list_edit_distance 0 - the whitelist barcodes one error away from
+// the list is the observed barcodes that are in the inclusion list, plus - unless
+// --barcode_list_edit_distance 0 - the inclusion list barcodes one error away from
 // an observed barcode that is not. Those neighbours are what let a read with a
 // sequencing error in its barcode still reach the right cell; without them it
 // is corrected to whichever other barcode in the list happens to be close.
@@ -41,7 +41,7 @@ process buildBarcodeList {
 	script:
 	"""
 	demultiplex_reads.py \\
-		--whitelist ${include_list} \\
+		--inclusion-list ${include_list} \\
 		--barcode-length ${barcode_length} \\
 		--edit-distance ${params.barcode_list_edit_distance} \\
 		--barcode-list-out barcode_list.txt \\
@@ -72,7 +72,7 @@ process demultiplexReadsDirect {
 	script:
 	"""
 	demultiplex_reads.py \\
-		--whitelist ${include_list} \\
+		--inclusion-list ${include_list} \\
 		--barcode-length ${barcode_length} \\
 		--umi-length ${umi_length} \\
 		--edit-distance ${params.barcode_list_edit_distance} \\
@@ -169,7 +169,7 @@ process demultiplexReads {
 // VisiumHD spot barcodes are split in two, either side of the UMI, so flexiplex
 // is run twice: the first pass pulls out the second half of the barcode and
 // writes it into the read ID, the second pass pulls out the UMI and the first
-// half. No discovery step is needed - the slide whitelist is small enough to
+// half. No discovery step is needed - the slide inclusion list is small enough to
 // match against directly.
 process demultiplexReadsVisiumHD {
 	label 'process_high'

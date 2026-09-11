@@ -206,8 +206,8 @@ workflow {
 	)
 	demultiplex_input = extractTargetReads(read1_files(), target_read_ids)
 
-	// a supplied list of called cells is used in place of the whitelist
-	barcode_whitelist = params.barcode_list ? channel.value(file(params.barcode_list)) : include_list
+	// a supplied list of called cells is used in place of the inclusion list
+	barcode_inclusion_list = params.barcode_list ? channel.value(file(params.barcode_list)) : include_list
 
 	// Assign the barcodes, against candidates taken from the reads themselves.
 	// VisiumHD uses flexiplex, whose two-stage search handles the split spot
@@ -217,14 +217,14 @@ workflow {
 	} else if (params.demultiplexer == "direct") {
 		barcode_table = demultiplexReadsDirect(
 			demultiplex_input,
-			barcode_whitelist,
+			barcode_inclusion_list,
 			barcode_length,
 			umi_length
 		)
 	} else {
 		barcode_table = demultiplexReads(
 			demultiplex_input,
-			buildBarcodeList(demultiplex_input, barcode_whitelist, barcode_length),
+			buildBarcodeList(demultiplex_input, barcode_inclusion_list, barcode_length),
 			flexiplex_demultiplex_options
 		)
 	}

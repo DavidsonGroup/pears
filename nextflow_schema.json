@@ -36,6 +36,12 @@
                     "default": false,
                     "description": "Whether to search for new fusions in addition to those in known_fusions_list"
                 },
+                "arriba_strict_breakpoints": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Only report arriba where its breakpoint matches one in the known fusion list. By default a gene pair on that list is kept at any support level and arriba's own breakpoints for it are added to the fusion target list, so flexiplex and fuscia search them too; with this set they are not. Gene pairs that are not on the list still need min_arriba_support to be discovered.",
+                    "fa_icon": "fas fa-crosshairs"
+                },
                 "min_arriba_support": {
                     "type": "integer",
                     "default": 1,
@@ -131,7 +137,7 @@
             "properties": {
                 "protocol": {
                     "type": "string",
-                    "description": "10x Chromium chemistry preset. Sets the correct barcode whitelist and UMI length automatically.",
+                    "description": "10x Chromium chemistry preset. Sets the correct barcode inclusion list and UMI length automatically.",
                     "fa_icon": "fas fa-flask",
                     "enum": [
                         "10x-3prime-v2",
@@ -159,7 +165,7 @@
                 "barcode_include_list": {
                     "type": "string",
                     "format": "file-path",
-                    "description": "Path to custom cell barcode whitelist file (can be gzipped). Overrides the protocol default if specified.",
+                    "description": "Path to custom cell barcode inclusion list file (can be gzipped). Overrides the protocol default if specified.",
                     "fa_icon": "fas fa-list"
                 }
             }
@@ -254,7 +260,7 @@
                         0,
                         1
                     ],
-                    "description": "How the barcode list is built from the reads being demultiplexed. 1 (default) keeps the observed barcodes that are in the whitelist plus the whitelist barcodes one error away from an observed barcode that is not, which matches what demultiplexing against the whole whitelist would give. 0 keeps only exact whitelist hits, which drops reads carrying a sequencing error in the barcode.",
+                    "description": "How the barcode list is built from the reads being demultiplexed. 1 (default) keeps the observed barcodes that are in the inclusion list plus the inclusion list barcodes one error away from an observed barcode that is not, which matches what demultiplexing against the whole inclusion list would give. 0 keeps only exact inclusion list hits, which drops reads carrying a sequencing error in the barcode.",
                     "fa_icon": "fas fa-crosshairs"
                 },
                 "barcode_list": {

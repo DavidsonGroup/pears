@@ -3,7 +3,7 @@
 Convert VisiumHD two-part barcodes (BC1_BC2) in combined_fusions.csv to
 standard SpaceRanger spatial barcode format: s_008um_XXXXX_YYYYY-1.
 
-The VisiumHD whitelist maps each barcode sequence (by line position, 1-indexed)
+The VisiumHD inclusion list maps each barcode sequence (by line position, 1-indexed)
 to a coordinate on the capture array (1-3350 on each axis). The spatial bin
 barcode is derived by dividing each axis position by the bin divisor and
 zero-padding to 5 digits.
@@ -26,8 +26,8 @@ BIN_CONFIG = {
 }
 
 
-def load_whitelist(path):
-    """Return dict {barcode_seq: 1-based_position} from whitelist (one seq per line)."""
+def load_inclusion_list(path):
+    """Return dict {barcode_seq: 1-based_position} from inclusion list (one seq per line)."""
     mapping = {}
     with open(path) as fh:
         for i, line in enumerate(fh, start=1):
@@ -37,14 +37,14 @@ def load_whitelist(path):
     return mapping
 
 
-def convert_barcode(bc, whitelist, divisor, prefix):
+def convert_barcode(bc, inclusion_list, divisor, prefix):
     """Convert a BC1_BC2 string to s_{prefix}_XXXXX_YYYYY-1, or None if unmappable."""
     parts = bc.split("_", 1)
     if len(parts) != 2:
         return None
     bc1, bc2 = parts
-    pos1 = whitelist.get(bc1)
-    pos2 = whitelist.get(bc2)
+    pos1 = inclusion_list.get(bc1)
+    pos2 = inclusion_list.get(bc2)
     if pos1 is None or pos2 is None:
         return None
     x = round(pos1 / divisor)
@@ -57,7 +57,7 @@ def main():
         description="Convert VisiumHD BC1_BC2 barcodes to spatial bin format."
     )
     parser.add_argument("--input",    required=True, help="combined_fusions.csv")
-    parser.add_argument("--whitelist", required=True, help="Uncompressed barcode whitelist")
+    parser.add_argument("--inclusion-list", required=True, help="Uncompressed barcode inclusion list")
     parser.add_argument("--bin-size", required=True, type=int, choices=[2, 8, 16],
                         help="VisiumHD bin size in microns (2, 8, or 16)")
     parser.add_argument("--output",   required=True, help="Output CSV path")
@@ -65,16 +65,16 @@ def main():
 
     divisor, prefix = BIN_CONFIG[args.bin_size]
 
-    print(f"Loading whitelist: {args.whitelist}", file=sys.stderr)
-    whitelist = load_whitelist(args.whitelist)
-    print(f"  {len(whitelist)} barcodes loaded", file=sys.stderr)
+    print(f"Loading inclusion list: {args.inclusion_list}", file=sys.stderr)
+    inclusion_list = load_inclusion_list(args.inclusion_list)
+    print(f"  {len(inclusion_list)} barcodes loaded", file=sys.stderr)
 
     df = pd.read_csv(args.input)
     if "cell_barcode" not in df.columns:
         sys.exit(f"ERROR: cell_barcode column not found in {args.input}")
 
     converted = df["cell_barcode"].apply(
-        lambda bc: convert_barcode(bc, whitelist, divisor, prefix)
+        lambda bc: convert_barcode(bc, inclusion_list, divisor, prefix)
     )
     n_ok   = converted.notna().sum()
     n_fail = converted.isna().sum()

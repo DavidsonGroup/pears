@@ -5,19 +5,26 @@ reads_barcodes.txt table.
 
 The barcode and UMI sit at a fixed offset in R1, so they are read positionally
 rather than searched for. Correction is done by enumerating the sequences one
-error away from an observed barcode and looking those up in the whitelist,
-rather than comparing each read against every whitelist barcode: the
+error away from an observed barcode and looking those up in the inclusion list,
+rather than comparing each read against every inclusion list barcode: the
 neighbourhood of a 16bp barcode has at most 176 members whatever the size of
-the whitelist, so the whitelist is touched twice by a streaming membership
+the inclusion list, so the inclusion list is touched twice by a streaming membership
 test instead of once per read.
 
 Correction prefers barcodes already seen in these reads. A barcode observed in
-the data is a much more likely source than a whitelist barcode that appears
-nowhere in it, so the whitelist is only consulted for observed sequences that
+the data is a much more likely source than an inclusion list barcode that appears
+nowhere in it, so the inclusion list is only consulted for observed sequences that
 no other observed barcode explains. Where more than one candidate remains, the
 read is assigned by combining how abundant each candidate is with how likely
 the implied sequencing error is given the base quality, and is left unassigned
 if that does not favour one candidate clearly enough.
+
+A barcode containing an N is handled by the same mechanism, since an N is one
+substitution from the base that should be there: reads with the usual
+first-cycle N are corrected to the barcode matching at the other positions,
+where flexiplex leaves them unassigned. These are a percent or two of reads,
+and recovering them adds cells supported by a single read, so compare callers
+at a matched UMI threshold rather than on raw cell counts.
 
 With --barcode-list-out the barcode list is written as well (or instead), for
 feeding flexiplex or for QC.
@@ -73,12 +80,12 @@ def neighbours(barcode):
             yield barcode[:i] + barcode[i + 1:] + bytes([base])
 
 
-def whitelist_members(whitelist_path, wanted):
-    """The whitelist entries that are in `wanted`, in one streaming pass."""
+def inclusion_list_members(inclusion_list_path, wanted):
+    """The inclusion list entries that are in `wanted`, in one streaming pass."""
     hits = set()
     if not wanted:
         return hits
-    with open_maybe_gz(whitelist_path) as fh:
+    with open_maybe_gz(inclusion_list_path) as fh:
         for line in fh:
             barcode = line.split()[0] if line.strip() else b""
             if barcode in wanted:
@@ -149,10 +156,10 @@ def resolve(observed, candidates, quality, next_base, counts):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Demultiplex reads against a barcode whitelist."
+        description="Demultiplex reads against a barcode inclusion list."
     )
-    parser.add_argument("--whitelist", required=True,
-                        help="Barcode whitelist, one barcode per line.")
+    parser.add_argument("--inclusion-list", required=True,
+                        help="Barcode inclusion list, one barcode per line.")
     parser.add_argument("--barcode-length", type=int, required=True,
                         help="Barcode length in bases, from the start of the read.")
     parser.add_argument("--umi-length", type=int,
@@ -186,13 +193,13 @@ def main():
     print(f"{n_reads} reads, {len(observed)} distinct barcode sequences",
           file=sys.stderr)
 
-    exact = whitelist_members(args.whitelist, observed)
-    print(f"{len(exact)} are in the whitelist exactly", file=sys.stderr)
+    exact = inclusion_list_members(args.inclusion_list, observed)
+    print(f"{len(exact)} are in the inclusion list exactly", file=sys.stderr)
 
     # Candidates for the sequences that are not, preferring barcodes we have
-    # already seen over whitelist barcodes that appear nowhere in the data
+    # already seen over inclusion list barcodes that appear nowhere in the data
     from_observed = {}
-    from_whitelist = {}
+    from_inclusion_list = {}
     near = set()
     if args.edit_distance == 1:
         variants = set()
@@ -205,15 +212,15 @@ def main():
             else:
                 unexplained[barcode] = candidates
                 variants |= candidates
-        near = whitelist_members(args.whitelist, variants)
+        near = inclusion_list_members(args.inclusion_list, variants)
         for barcode, candidates in unexplained.items():
             hits = sorted(candidates & near)
             if hits:
-                from_whitelist[barcode] = hits
+                from_inclusion_list[barcode] = hits
         print(f"{len(observed) - len(exact)} are not: {len(from_observed)} are "
-              f"one error from a barcode already seen, {len(from_whitelist)} "
-              f"from {len(near)} whitelist barcodes, "
-              f"{len(observed) - len(exact) - len(from_observed) - len(from_whitelist)} "
+              f"one error from a barcode already seen, {len(from_inclusion_list)} "
+              f"from {len(near)} inclusion list barcodes, "
+              f"{len(observed) - len(exact) - len(from_observed) - len(from_inclusion_list)} "
               f"have no candidate", file=sys.stderr)
 
     if args.barcode_list_out:
@@ -237,7 +244,7 @@ def main():
                 assigned, distance, umi_at = barcode, 0, length
                 tally["exact"] += 1
             else:
-                candidates = from_observed.get(barcode) or from_whitelist.get(barcode)
+                candidates = from_observed.get(barcode) or from_inclusion_list.get(barcode)
                 if not candidates:
                     tally["no candidate"] += 1
                     continue

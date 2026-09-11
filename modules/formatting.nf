@@ -43,7 +43,7 @@ process convertToSpatialBarcodes {
 
     input:
     path combined_csv
-    path whitelist
+    path inclusion_list
     val  bin_size
 
     output:
@@ -53,7 +53,7 @@ process convertToSpatialBarcodes {
     """
     convert_barcodes_spatial.py \
         --input $combined_csv \
-        --whitelist $whitelist \
+        --inclusion-list $inclusion_list \
         --bin-size $bin_size \
         --output combined_fusions_spatial.csv
     """
